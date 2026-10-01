@@ -4,7 +4,7 @@
 //                 Left-click to toggle. Right-click to set a default for the current workspace.
 //                 Drag it anywhere via the customize toolbar screen.
 // @author         ravenothere
-// @version        1.1.0
+// @version        1.1.1
 // @grant          none
 // ==/UserScript==
 
@@ -69,8 +69,26 @@
   }
 
   function getActiveWorkspaceId() {
-    try { return gBrowser.selectedTab.getAttribute("zen-workspace-id") || null; }
+    // Essentials are shared across workspaces and have no tab workspace ID.
+    try { return window.gZenWorkspaces?.activeWorkspace || null; }
     catch { return null; }
+  }
+
+  function startWorkspaceTracking() {
+    gBrowser.tabContainer.addEventListener("TabSelect", onTabSelect);
+    // Zen's UI event also covers workspace data updates; actual switches use
+    // the change-listener API even when the same Essential stays selected.
+    window.addEventListener("ZenWorkspacesUIUpdate", onTabSelect);
+    window.gZenWorkspaces?.addChangeListeners?.(onTabSelect);
+    window.addEventListener("unload", () => {
+      gBrowser.tabContainer.removeEventListener("TabSelect", onTabSelect);
+      window.removeEventListener("ZenWorkspacesUIUpdate", onTabSelect);
+      window.gZenWorkspaces?.removeChangeListeners?.(onTabSelect);
+    }, { once: true });
+    onTabSelect();
+    window.gZenWorkspaces?.promiseInitialized?.then(() => {
+      if (!window.closed) onTabSelect();
+    });
   }
 
   function getWorkspaceDefault(uuid) {
@@ -94,6 +112,8 @@
   }
 
   function applyWorkspaceState(uuid) {
+    // Do not reset the global preference while Zen is starting, or in Firefox.
+    if (!uuid) return;
     const state = getEffectiveState(uuid);
     if (state === 1) {
       Services.prefs.setIntPref(PREF, 1);
@@ -109,7 +129,7 @@
 
   function onTabSelect() {
     const currentId = getActiveWorkspaceId();
-    if (currentId !== _lastWorkspaceId) {
+    if (currentId && currentId !== _lastWorkspaceId) {
       _lastWorkspaceId = currentId;
       applyWorkspaceState(currentId);
     }
@@ -185,6 +205,7 @@
   ];
 
   function setupContextMenu(btn, doc) {
+    if (!btn || doc.getElementById("zen-ws-sep")) return;
     const toolbarCtx = doc.getElementById("toolbar-context-menu");
     if (!toolbarCtx) return;
 
@@ -231,38 +252,45 @@
 
   // ── Init ──────────────────────────────────────────────────────────────
 
-  function init() {
-    CustomizableUI.createWidget({
-      id:          WIDGET_ID,
-      type:        "button",
-      defaultArea: CustomizableUI.AREA_NAVBAR,
-      label:       "Website Appearance",
-      tooltiptext: "Toggle Website Appearance",
-      onCreated(btn) {
-        setTimeout(() => refreshBtn(btn), 0);
-        setupContextMenu(btn, btn.ownerDocument);
-      },
-      onCommand() {
-        const s = getState();
-        Services.prefs.setIntPref(PREF, s.next);
-        const uuid = getActiveWorkspaceId();
-        if (uuid) {
-          const sessionVal = s.next === 1 ? 1 : s.next === 0 ? 2 : 0;
-          _sessionState.set(uuid, sessionVal);
-        }
-        refreshAll();
-      },
-    });
+  function toggle() {
+    const s = getState();
+    Services.prefs.setIntPref(PREF, s.next);
+    const uuid = getActiveWorkspaceId();
+    if (uuid) {
+      const sessionVal = s.next === 1 ? 1 : s.next === 0 ? 2 : 0;
+      _sessionState.set(uuid, sessionVal);
+    }
+    refreshAll();
+  }
 
-    gBrowser.tabContainer.addEventListener("TabSelect", onTabSelect);
+  function init() {
+    window.__zenSiteAppearanceToggle = { toggle, setupContextMenu };
+    // Register once globally, but install workspace tracking in every window.
+    if (!CustomizableUI.getWidget(WIDGET_ID)?.source) {
+      CustomizableUI.createWidget({
+        id:          WIDGET_ID,
+        type:        "button",
+        defaultArea: CustomizableUI.AREA_NAVBAR,
+        label:       "Website Appearance",
+        tooltiptext: "Toggle Website Appearance",
+        onCreated(btn) {
+          setTimeout(() => refreshBtn(btn), 0);
+          const win = btn.ownerDocument.defaultView;
+          win.__zenSiteAppearanceToggle?.setupContextMenu(btn, btn.ownerDocument);
+        },
+        onCommand(event) {
+          const win = event.target.ownerDocument.defaultView;
+          win.__zenSiteAppearanceToggle?.toggle();
+        },
+      });
+    }
+
+    setupContextMenu(document.getElementById(WIDGET_ID), document);
+    startWorkspaceTracking();
 
     for (const key of Object.values(P)) {
       Services.prefs.addObserver(key, () => refreshAll());
     }
-
-    const initialId = getActiveWorkspaceId();
-    _lastWorkspaceId = initialId;
-    applyWorkspaceState(initialId);
   }
 
   if (document.readyState === "complete") {
@@ -272,3 +300,4 @@
   }
 
 })();
+

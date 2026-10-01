@@ -1,0 +1,196 @@
+{
+  "sourceSHA256": "30ebe6c44f097bb7db1c9ece0e22429ba79eb84d5a33c8cbbc2260d261c5ba9a",
+  "checks": [
+    {
+      "name": "load with Essential selected and saved Dark default",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 2,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "real workspace switch with shared Essential",
+      "expectedPreference": 1,
+      "pref": 1,
+      "workspace": "{a7abd240-cb28-4494-a3eb-22a730d074eb}",
+      "essential": true,
+      "tabSelects": 2,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "return to saved Dark workspace",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 2,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "ordinary selection 0",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": false,
+      "tabSelects": 3,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "Essential selection 0",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 4,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "ordinary selection 1",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": false,
+      "tabSelects": 5,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "Essential selection 1",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 6,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "ordinary selection 2",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": false,
+      "tabSelects": 7,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "Essential selection 2",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 8,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "set Auto from Essential",
+      "expectedPreference": 3,
+      "pref": 3,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 8,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "manual Dark override from Essential",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 8,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "manual choice survives ordinary selection",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": false,
+      "tabSelects": 9,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "other workspace keeps saved Light",
+      "expectedPreference": 1,
+      "pref": 1,
+      "workspace": "{a7abd240-cb28-4494-a3eb-22a730d074eb}",
+      "essential": true,
+      "tabSelects": 10,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "return restores session Dark override",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": false,
+      "tabSelects": 11,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "set persistent Light default from Essential",
+      "expectedPreference": 1,
+      "pref": 1,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 12,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "second-window toolbar selects Dark",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 12,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "second window restores A Light",
+      "expectedPreference": 1,
+      "pref": 1,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 12,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "second window remembers its B override",
+      "expectedPreference": 0,
+      "pref": 0,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 12,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "second-window menu writes its workspace",
+      "expectedPreference": 1,
+      "pref": 1,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 12,
+      "workspaceEvents": 1
+    },
+    {
+      "name": "persisted Light default after native browser restart",
+      "expectedPreference": 1,
+      "pref": 1,
+      "workspace": "{868d8208-adce-4399-ae4c-9599e955a38c}",
+      "essential": true,
+      "tabSelects": 0,
+      "workspaceEvents": 0
+    }
+  ],
+  "browser": {
+    "version": "1.22.3b",
+    "gecko": "156.0.1",
+    "pid": 41752
+  },
+  "essentialSwitch": {
+    "beforeSelections": 2,
+    "selections": 2,
+    "stillEssential": true
+  },
+  "passed": 20
+}

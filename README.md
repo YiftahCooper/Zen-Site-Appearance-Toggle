@@ -37,6 +37,14 @@ Right-click the toggle button to assign a default appearance to the current work
 
 Left-clicking still works as a manual override anytime — it temporarily overrides the workspace default for the current session and resets on next browser start.
 
+### Essentials fix in 1.1.1
+
+Selecting an Essential now keeps the current workspace's appearance choice. Previously, Essentials' missing tab workspace ID could reset website appearance to Auto, making sites such as GitHub change their tab icons as you selected different tabs.
+
+Actual workspace switches still apply that workspace's appearance, including when the same Essential stays selected. The toolbar and workspace-default menu also work from Essentials and in additional browser windows. Existing preference names, saved defaults, icons, and toolbar placement are unchanged.
+
+See [verification and rollback](verification/README.md) for the test coverage and its limits.
+
 ---
 
 ## Installation

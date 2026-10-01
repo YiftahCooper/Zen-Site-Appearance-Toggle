@@ -4,7 +4,7 @@
 //                 Left-click to toggle. Right-click to set a default for the current workspace.
 //                 Drag it anywhere via the customize toolbar screen.
 // @author         ravenothere
-// @version        1.1.0
+// @version        1.1.1
 // @grant          none
 // ==/UserScript==
 
@@ -41,8 +41,26 @@
   }
 
   function getActiveWorkspaceId() {
-    try { return gBrowser.selectedTab.getAttribute("zen-workspace-id") || null; }
+    // Essentials are shared across workspaces and have no tab workspace ID.
+    try { return window.gZenWorkspaces?.activeWorkspace || null; }
     catch { return null; }
+  }
+
+  function startWorkspaceTracking() {
+    gBrowser.tabContainer.addEventListener("TabSelect", onTabSelect);
+    // Zen's UI event also covers workspace data updates; actual switches use
+    // the change-listener API even when the same Essential stays selected.
+    window.addEventListener("ZenWorkspacesUIUpdate", onTabSelect);
+    window.gZenWorkspaces?.addChangeListeners?.(onTabSelect);
+    window.addEventListener("unload", () => {
+      gBrowser.tabContainer.removeEventListener("TabSelect", onTabSelect);
+      window.removeEventListener("ZenWorkspacesUIUpdate", onTabSelect);
+      window.gZenWorkspaces?.removeChangeListeners?.(onTabSelect);
+    }, { once: true });
+    onTabSelect();
+    window.gZenWorkspaces?.promiseInitialized?.then(() => {
+      if (!window.closed) onTabSelect();
+    });
   }
 
   function getWorkspaceDefault(uuid) {
@@ -66,6 +84,8 @@
   }
 
   function applyWorkspaceState(uuid) {
+    // Do not reset the global preference while Zen is starting, or in Firefox.
+    if (!uuid) return;
     const state = getEffectiveState(uuid);
     if (state === 1) {
       Services.prefs.setIntPref(PREF, 1);
@@ -81,7 +101,7 @@
 
   function onTabSelect() {
     const currentId = getActiveWorkspaceId();
-    if (currentId !== _lastWorkspaceId) {
+    if (currentId && currentId !== _lastWorkspaceId) {
       _lastWorkspaceId = currentId;
       applyWorkspaceState(currentId);
     }
@@ -130,6 +150,7 @@
   ];
 
   function setupContextMenu(btn) {
+    if (!btn || document.getElementById("zen-ws-sep")) return;
     const toolbarCtx = document.getElementById("toolbar-context-menu");
     if (!toolbarCtx) return;
 
@@ -177,11 +198,23 @@
     });
   }
 
+  function toggle() {
+    const uuid = getActiveWorkspaceId();
+    const s = getState(SPARKLE_SRC);
+    Services.prefs.setIntPref(PREF, s.next);
+    if (uuid) {
+      const sessionVal = s.next === 1 ? 1 : s.next === 0 ? 2 : 0;
+      _sessionState.set(uuid, sessionVal);
+    }
+    refreshAll();
+  }
+
   function init() {
     if (!window.UC_API) { window.setTimeout(init, 500); return; }
 
-    if (!window._zenCSToggleRegistered) {
-      window._zenCSToggleRegistered = true;
+    window.__zenSiteAppearanceToggle = { toggle };
+    // The widget registry is shared by all browser windows.
+    if (!CustomizableUI.getWidget(WIDGET_ID)?.source) {
 
       UC_API.Utils.createWidget({
         id:        WIDGET_ID,
@@ -189,26 +222,17 @@
         label:     "Website Appearance",
         tooltip:   "Toggle Website Appearance",
         allEvents: false,
-        callback:  function (event, win) {
-          const uuid = getActiveWorkspaceId();
-          const s = getState(SPARKLE_SRC);
-          Services.prefs.setIntPref(PREF, s.next);
-          if (uuid) {
-            const sessionVal = s.next === 1 ? 1 : s.next === 0 ? 2 : 0;
-            _sessionState.set(uuid, sessionVal);
-          }
-          refreshAll();
+        callback: function (event) {
+          const win = event.target.ownerDocument.defaultView;
+          win.__zenSiteAppearanceToggle?.toggle();
         },
       });
 
-      gBrowser.tabContainer.addEventListener("TabSelect", onTabSelect);
     }
 
     UC_API.Runtime.startupFinished().then(() => {
       const btn = document.getElementById(WIDGET_ID);
-      const initialId = getActiveWorkspaceId();
-      _lastWorkspaceId = initialId;
-      applyWorkspaceState(initialId);
+      startWorkspaceTracking();
       setupContextMenu(btn);
     });
   }
@@ -220,3 +244,4 @@
   }
 
 })();
+
