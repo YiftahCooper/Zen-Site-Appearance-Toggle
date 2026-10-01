@@ -1,58 +1,60 @@
-# Essentials workspace appearance repair
+# Version 1.2.0 verification
 
-## What was wrong
+Verified on 1 October 2026 with Zen 1.22.3b / Gecko 156.0.1. Tests used fresh disposable profiles and synthetic tabs. Publication is separate from everyday-profile installation and acceptance.
 
-Version 1.1.0 inferred the workspace from the selected tab's `zen-workspace-id`. Essentials deliberately lack that attribute. With a manual Dark override in a workspace, selecting an Essential therefore reset the global website preference to Auto; selecting an ordinary tab restored Dark. Websites that react to the preference, including GitHub's favicon code, changed appearance even though the workspace hadn't changed.
+## Requirements and results
 
-Version 1.1.1 reads `gZenWorkspaces.activeWorkspace` instead. It listens to Zen's workspace-change callback so an actual workspace change still applies the correct choice when the selected Essential stays the same. An unknown workspace during startup no longer resets the preference, and initialization retries after Zen is ready.
+| Requirement | Evidence |
+| --- | --- |
+| Selecting Essentials must preserve the browser default and unrelated background tabs | Native Essential/workspace switches and independent background rendering |
+| Clicking must choose the advertised opposite appearance | Rendered Light under Dark defaults; legacy browser-theme default tested separately from System |
+| Configure controls Zen's actual System/Light/Dark default | Clicks on Zen's real appearance picker and two-way synchronization with Configure |
+| Remember by workspace, website, or website within each workspace | Policy tests and native workspace/site rendering |
+| Keep choices after navigation, unloading, reopening and restart | Native navigation, discard/restore, restart and persisted-record checks |
+| Recognize Search and Images together and keep independent services separate | Service rules, native public-suffix service and grouping tests |
+| Retain icons, toolbar placement and old workspace choices | Same widget ID, original icon options, three variants; Sine preserves legacy records |
+| Private choices do not change normal saved settings | Native private-window checks and persistence tests |
 
-Toolbar commands use the button's owning window. Widget registration happens once globally; workspace tracking and menus are installed in each window. The Sine script and both manual variants contain the same repair. Settings keys, the mod ID, CSS, icon options and toolbar placement are unchanged.
+All **51 Node tests**, **43 native appearance checks**, **15 actual Sine manager checks**, and **4 native private-window checks** passed. All four generated scripts match shared source.
 
-## Checks
+Public results omit machine identity and profile paths:
 
-Run the dependency-free JavaScript suite with Node:
+- [Native appearance](release-1.2.0-native-appearance.json)
+- [Sine manager APIs](release-1.2.0-native-sine.json)
+- [Private windows](release-1.2.0-native-private.json)
 
-```sh
-node --test tests/workspaces.test.cjs
-```
+Sine checks used unmodified source pinned to [CosmoCreeper/Sine commit fb0bd4c](https://github.com/CosmoCreeper/Sine/tree/fb0bd4ca6af888f10648e126947f7d1f82228433). They invoked its actual script loader, Configure renderer, rebuild, disable and re-enable APIs. A minimal `sineModsList` host was supplied in native about:preferences. This covers those APIs, not the complete installer, downloader or updater.
 
-24 tests cover the three scripts: repeated Essential/ordinary selection, workspace changes with a shared Essential, manual overrides and saved defaults from Essentials, startup with no workspace yet, Firefox's global toggle, a dark system theme, and second-window command routing. The suite models actual loader constraints: duplicate registration throws, ordinary workspace changes use Zen's callback rather than its UI-refresh event, and an older fx-autoconfig callback may supply an undefined window argument.
+Independent review found and repaired transferred-tab override ownership, unresolved workspace IDs, aliased ports, grouping previews reading the wrong mode, native System binding, and inherited browser-theme detection. Focused regressions cover these repairs. On this Zen version, native value 2 follows System; legacy value 3 follows the browser's derived content theme. Configure displays both as the native picker does, preserves existing values on opening, and writes native value 2 when System is explicitly selected. SAT now reads each correctly and responds to native theme changes.
 
-The original code failed these regression cases before the repair. Native tests also rejected an intermediate implementation that listened only to `ZenWorkspacesUIUpdate`; that event does not fire on every ordinary workspace change in the tested Zen version.
+The previous workspace-only implementation and its native test are retained in [version 1.1.1's commit](https://github.com/YiftahCooper/Zen-Site-Appearance-Toggle/tree/45a24213b4fe3cbe77eecc9ab34c9921fee6340a). Its test assumed the old global-preference behavior and has been replaced by the 1.2.0 rendering suite.
 
-The native harness uses fresh synthetic profiles and verifies their exact paths before automation. On Windows:
+## Google and Gemini
+
+The old SAT toggle returned an explicit Light/Dark choice to Auto instead of choosing its advertised opposite. Version 1.2.0 selects an explicit opposite; System and browser inheritance are separate menu choices.
+
+Websites also control their own appearance. Gemini's explicit Dark setting ignored a Light browser request. Its own System setting followed Light/Dark/Light in the native test. Google Search's explicit Off setting similarly chose Light despite receiving a Dark browser signal. Device default allowed a fresh Google homepage to follow the browser.
+
+Google's homepage can show the previous appearance on the first navigation and catch up on another navigation. This occurred with Zen's native default as well as SAT's per-site override. It does not establish a native Zen defect. SAT does not rewrite account theme settings or automatically reload pages.
+
+Google Search and Images result pages presented an automated-traffic challenge in disposable testing. The grouping policy is tested, but complete rendered-result-page acceptance is still unverified. Full native Firefox and fx-autoconfig loading are also untested; their variants and no-Zen fallback have model coverage.
+
+## Reproduce the included checks
+
+Use Node and Python. The mod has no new runtime dependency. DOM tests use jsdom only in disposable scratch:
 
 ```powershell
-python tests/native_workspaces.py --zen 'C:\Program Files\Zen Browser\zen.exe'
+npm.cmd install --prefix .backup-scratch/test-tools --cache .backup-scratch/npm-cache --ignore-scripts --no-audit --no-fund jsdom@26.1.0
+node tools/build.cjs --check
+node --test tests/*.test.cjs
+python tests/native_appearance.py
+python tests/native_private.py
 ```
 
-It creates only blank tabs and test workspaces, blocks external proxy traffic, opens a second test window, restarts its own disposable browser, and closes it afterwards. Its output is retained under `verification/native-*.json`; browser profiles and process logs stay under `.backup-scratch/`. The harness uses port 28797 and should not run concurrently with itself. The Windows child-process environment disables the content sandbox for this nested headless test only; it does not change browser installation files or an everyday profile.
+The native harness expects Zen at `C:\Program Files\Zen Browser\zen.exe`. It creates a unique `.backup-scratch/` profile, uses an ephemeral localhost port, verifies the exact profile before automation, and closes only its owned process. A dead proxy blocks external traffic; local HTTP fixtures supply rendered pages. The headless child's content-sandbox environment option affects only that process. Useful results are retained under `verification/`; generated profiles, logs and dependencies are disposable. Backup exclusions for scratch were not verified or changed.
 
-The accepted native run on **Zen 1.22.3b / Gecko 156.0.1** passed 20 checks covering:
+## Upgrade and rollback
 
-- Loading the Sine script with an Essential selected and a saved default.
-- Switching workspaces while the selected Essential and TabSelect count stay unchanged.
-- Repeated ordinary/Essential selections without preference resets.
-- Menu defaults and manual overrides from Essentials.
-- Leaving and returning to a workspace with a session override.
-- Toolbar and menu commands in a second native window.
-- A persisted workspace default after restarting the disposable browser.
+Keep the same mod ID, preference keys and toolbar placement. **Restart after upgrading from 1.1.0 or 1.1.1**, whose listeners cannot be cleanly unloaded in an existing session. Version 1.2.0 registers Sine cleanup callbacks.
 
-The native harness loads the Sine script in per-window privileged contexts. It does not claim to test the entire Sine installation/update lifecycle, the full fx-autoconfig loader, or native Firefox. The manual variants and Firefox fallback have source and unit coverage. No everyday-profile installation or acceptance is claimed.
-
-GitHub was separately tested in a disposable native browser before this patch: its favicon follows the browser-reported light/dark preference even if its rendered page theme is forced to the opposite. This repair prevents accidental preference changes; it does not prevent intentional site responses or force unloaded tabs to refresh cached icons.
-
-## Manual reproduction
-
-1. In a disposable Zen profile with the mod, select an ordinary tab and use the toolbar toggle to choose the opposite of Auto, or set a workspace default.
-2. Select an Essential, then an ordinary tab. The website appearance choice should remain unchanged.
-3. Visit two workspaces and select the same shared Essential in each. Assign different defaults. Switch between them: each choice should apply even when that Essential remains selected.
-4. Choose a default and a manual override while an Essential is selected. Leave and return to the workspace. The override should survive until the browser session ends, and the default should survive restart.
-
-The underlying website appearance preference is browser-wide. This mod does not provide simultaneous independent website colour schemes for different windows.
-
-## Rollback and profile safety
-
-No profile migration is required. To roll back an installation, restore the previous script/version and restart the browser. Preserve existing `mod.zensiteappearancetoggle.*` preferences and the configured toolbar placement; do not uninstall/delete those settings merely to replace the script. If a trial temporarily changes the website appearance preference, restore its recorded pre-trial value as well.
-
-Main-profile installation and source switching are separate user-approved actions. The supplied tests never use the normal profile. `.gitignore` excludes scratch from Git, but backup exclusions have not been verified or changed.
+To roll back, disable 1.2.0, restore the previous package and restart. Keep existing preferences: the old workspace map retains its numeric format, and new site/grouping records can remain for a later return to 1.2.0. Restore the browser default separately if deliberately changed during a trial.

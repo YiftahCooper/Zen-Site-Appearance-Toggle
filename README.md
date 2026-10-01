@@ -1,173 +1,86 @@
 # Zen Site Appearance Toggle
 
-A toolbar button for [Zen Browser](https://zen-browser.app/) & [Firefox](https://www.firefox.com) that toggles website dark/light mode with a single click using the built-in color-scheme preference in the browser settings — draggable anywhere in the toolbar like any native button.
+A toolbar button that remembers whether you want websites to request light or dark appearance. You can remember that choice per workspace, per website, or per website within each workspace.
 
-<img src="images/zen-site-appearance-toggle-preview.png" width="75%" />
-<img src="images/zen-site-appearance-toggle-preview.gif" width="75%" />
+**Version 1.2.0** adds remembered appearance by website and workspace. See [verification](verification/README.md) for the tested behaviour and website-specific limits, including Google Search.
 
-**How it works:** It detects your system color scheme and gives you a two-state toggle between automatic and the opposite. The default light mode icon is ✨ sparkle — a ☀️ sun variant is also available.
+## Using the button
 
-- **System is Light** → button shows ✨ sparkle → click forces Dark → button shows 🌙 moon → click resets to Auto (Light)
-- **System is Dark** → button shows 🌙 moon → click forces Light → button shows ✨ sparkle → click resets to Auto (Dark)
+Click to switch between Light and Dark. The choice is saved for the remembering mode selected in **Sine Mods → Zen Site Appearance Toggle → Configure**. It survives unloading a tab, opening the site again and restarting Zen.
 
-The icon always reflects the current website color scheme, and clicking always switches to the opposite then back to auto.
+Right-click the button for four choices:
 
----
+- **Light** or **Dark** saves an explicit choice.
+- **System** saves a choice that follows the operating system, even if your browser default is different.
+- **Use browser default** removes the exception for this scope.
 
-## Preview
+The button and tooltip describe the appearance requested from the website. A website can have its own theme setting and ignore that request. SAT does not recolour pages or change account theme settings.
 
-The button integrates natively into the Zen/Firefox toolbar — it respects hover states, sizing, and icon color automatically.
+## Browser default and remembering mode
 
-| State | Icon | Tooltip |
-|-------|------|---------|
-| Websites are dark (auto or forced) | 🌙 Moon | "Switch to Light" |
-| Websites are light (auto or forced) | ✨ Sparkle (or ☀️ Sun) | "Switch to Dark" |
+**Browser default** in Configure controls the same System/Light/Dark setting as Zen's **Settings → Appearance → Web site appearance**. Changing either control updates the other. Opening Configure does not change it.
 
-The button can be placed anywhere: nav bar, sidebar, overflow menu — anywhere Firefox lets you drag toolbar items via **right-click → Customize Toolbar**.
+| Remember choices | Example |
+| --- | --- |
+| Per workspace | Work requests Light; Personal requests Dark. |
+| Per site | A news site requests Dark wherever you open it. |
+| Per site within each workspace | The same news site requests Light in Work and Dark in Personal. |
 
----
+An ordinary tab uses the workspace it belongs to. Shared Essentials use the active workspace of their window. Background tabs keep their own appearance instead of changing whenever you select an unrelated tab.
 
-## Workspace Appearance
+Each mode retains its own saved choices. Switching modes does not erase them or blend them together. A missing choice uses the browser default. The initial mode is Per workspace, preserving existing workspace choices; Firefox uses Per site because it has no Zen workspaces.
 
-Right-click the toggle button to assign a default appearance to the current workspace in the context menu:
+Choices made in a private window are temporary and do not write to the normal saved settings. Change persistent configuration from a normal window.
 
-- **Workspace: Auto** — follows your system theme (default)
-- **Workspace: Dark** — forces dark mode whenever you're in this workspace
-- **Workspace: Light** — forces light mode whenever you're in this workspace
+## How websites are recognised
 
-Left-clicking still works as a manual override anytime — it temporarily overrides the workspace default for the current session and resets on next browser start.
+Changing a path, search query or fragment does not create another preference. Normal HTTP/HTTPS addresses and a site's bare/`www` forms share a group. Recognition uses the browser's public-suffix service, so independent hosted sites such as `alice.github.io` and `bob.github.io` remain separate.
 
-### Essentials fix in 1.1.1
+A small set of service rules separates independent services on shared domains. Google Search and Images share a group; Gemini, Gmail and Drive are separate. External websites opened from image results keep their own groups. Non-default ports remain separate.
 
-Selecting an Essential now keeps the current workspace's appearance choice. Previously, Essentials' missing tab workspace ID could reset website appearance to Auto, making sites such as GitHub change their tab icons as you selected different tabs.
+In Configure, **Site grouping** lets you enter an exact hostname and:
 
-Actual workspace switches still apply that workspace's appearance, including when the same Essential stays selected. The toolbar and workspace-default menu also work from Essentials and in additional browser windows. Existing preference names, saved defaults, icons, and toolbar placement are unchanged.
+- restore automatic recognition;
+- keep the hostname separate;
+- join a group that already has a saved choice or grouping rule.
 
-See [verification and rollback](verification/README.md) for the test coverage and its limits.
+The preview shows the destination's choice for the selected remembering mode. In the combined mode, it lists the saved choices by workspace. Grouping rules apply across workspaces, but appearance choices still follow the selected mode. Conflicting old choices are retained, so restoring the old grouping makes those choices available again. The resolver never needs browsing history, page titles, search terms or favicons.
 
----
+## Google and Gemini
 
-## Installation
+Gemini's **Settings → Theme → System** follows the browser request in the signed-out native test. Its explicit Light or Dark setting takes precedence, which can make the SAT button appear ineffective.
 
-### Method 1 — Sine (recommended)
+Google Search has a separate **Dark theme** setting; choose **Device default** to let it follow the browser. Its homepage does not necessarily update when the browser preference changes: in the disposable test, it could show the previous colour on the first navigation and match the new preference on the next. That delay occurs with Zen's native setting too. SAT does not automatically reload your Google pages. Google blocked automated Search and Images results with a traffic challenge, so those pages have not received complete rendering verification. See the [verification report](verification/README.md).
 
-[Sine](https://github.com/CosmoCreeper/Sine) is a mod manager for Zen/Firefox that installs mods in one click.
+There was also a demonstrated SAT defect: the old button could say “Switch to Light” but reset forced Dark to System, which remained dark when the system was dark. The new button saves the opposite explicit appearance instead.
 
-If you already have Sine installed, find this mod in [Sine store](https://sineorg.github.io/store/) and install it directly — no manual file copying needed.
+## Icons and placement
 
-Sine also lets you customize the icons from its settings panel. You can:
+Existing Original/Zen icon sets, Sparkle/Sun choice and individual icon overrides remain in Sine Configure. The native toolbar widget keeps the same ID and supports Customize Toolbar placement. The manual Sparkle and Sun variants use the same appearance logic.
 
-- **Choose an icon set** — pick between *Original* (the custom icons made for this mod) or *Zen* (Zen Browser's own built-in icons)
-- **Choose your light mode icon** — pick between ✨ Sparkle or ☀️ Sun
-- **Override individual icons** — optionally mix and match, e.g. Zen's moon with the Original sparkle, or any other combination
+## Installation and upgrade
 
-All changes apply instantly without restarting.
+The usual Sine package consists of `theme.json`, `preferences.json`, the declared scripts and `chrome/userChrome.css`. This fork publishes the package on `main`. In Sine, use the repository `YiftahCooper/Zen-Site-Appearance-Toggle` and branch `main`. The upstream store version is managed separately.
 
-> New to Sine? See the [Sine installation guide](https://github.com/CosmoCreeper/Sine#%EF%B8%8F-installation).
+When upgrading from 1.1.0 or 1.1.1, keep the same mod ID and preserve existing `mod.zensiteappearancetoggle.*` preferences and toolbar placement. **Restart after upgrading from 1.1.0 or 1.1.1:** those versions do not unregister its old listeners, so replacing files during the same session is not a clean upgrade. Version 1.2.0 supports Sine unload/re-enable.
 
----
+No default is reset on startup. Existing saved workspace values are read directly; old Auto entries remain explicit System choices. The new site/grouping records are stored separately. Old temporary session-only overrides were never persistent and do not become saved records automatically.
 
-### Method 2 — fx-autoconfig (manual)
+For an existing [fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig) installation, choose one generated manual script:
 
-#### Step 1 — Install fx-autoconfig
+- [Sparkle](chrome/JS/moon-sparkle/zen-colorscheme-toggle-sparkle.uc.js)
+- [Sun](chrome/JS/moon-sun/zen-colorscheme-toggle-sun.uc.js)
 
-fx-autoconfig is a small open-source loader by [@MrOtherGuy](https://github.com/MrOtherGuy) that lets Zen/Firefox run your own JavaScript at startup.
+Copy only that variant into the loader's `chrome/JS/` folder and retain the existing [button CSS](chrome/userChrome.css). The full Configure editor requires Sine. The standalone variants read the same preferences and provide the same toolbar menu; native fx-autoconfig and Firefox acceptance are still separate from the tested Sine/Zen path. Do not run two variants together.
 
-1. Go to [https://github.com/MrOtherGuy/fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig)
-2. Click **Code → Download ZIP** and extract it somewhere
+## Rollback
 
-**Copy files into Zen's install folder** (the folder where `zen.exe` / `zen` lives):
+Disable version 1.2.0 before restoring the previous package, then restart. Retain the existing preferences and toolbar placement. The new records can stay in the profile: 1.1.1 does not read them, and they will be available if you return to 1.2.0. Existing workspace choices keep their old numeric format. If you deliberately changed the browser default during a trial, restore its recorded pre-trial value separately.
 
-From the extracted ZIP, open the `program/` folder and copy both into your Zen install directory (e.g. `C:\Program Files\Zen Browser\` on Windows):
-- `config.js`
-- `defaults/` folder
+Disabling 1.2.0 releases its tab overrides and keeps your chosen native browser default. It does not delete saved choices. Installing an update does not require clearing saved preferences or recreating the toolbar button.
 
-> ⚠️ Windows may prompt for admin permission — click Yes.
+## Development
 
-> ⚠️ If you get a prompt that files already exist, click Skip — you don't have to replace them.
+Edit `src/`, then run `node tools/build.cjs`. The builder produces the Sine script, both standalone icon variants and the settings bridge; no build tools or dependencies run inside the mod.
 
-**Copy files into your profile's chrome folder:**
-
-Find your profile folder: go to `about:support` → *Profile Folder* → *Open Folder*. Inside it, open or create the `chrome/` folder.
-
-From the extracted ZIP, open `profile/chrome/` and copy these three folders into your `chrome/` folder:
-- `utils/`
-- `JS/`
-- `resources/`
-
-Your `chrome/` folder should now look like:
-```
-chrome/
-  ├── userChrome.css    ← yours (already exists or create it)
-  ├── utils/            ← new (fx-autoconfig engine)
-  ├── JS/               ← new (where scripts go)
-  └── resources/        ← new
-```
-
----
-
-#### Step 2 — Enable SVG context properties
-
-In `about:config`, find and set to `true`:
-```
-svg.context-properties.content.enabled
-```
-This makes the button icon color automatically match your toolbar icons.
-
----
-
-#### Step 3 — Copy the toggle files
-
-- [**`zen-colorscheme-toggle-sparkle.uc.js`**](chrome/JS/zen-colorscheme-toggle-sparkle.uc.js) or [**`zen-colorscheme-toggle-sun.uc.js`**](chrome/JS/zen-colorscheme-toggle-sun.uc.js) → choose **only one** and copy it into `chrome/JS/`
-- [**`userChrome.css`**](chrome/userChrome.css) → if you already have a `userChrome.css`, paste the contents at the end of your existing file. If you don't have one yet, copy it directly into `chrome/`.
-
----
-
-#### Step 4 — Clear startup cache & restart
-
-1. Open Zen Browser
-2. Go to `about:support`
-3. Click **"Clear startup cache…"** (top-right corner)
-4. Confirm — Zen restarts automatically
-
-The toggle button will appear in your toolbar. To move it, right-click the toolbar → **Customize Toolbar** and drag it wherever you want.
-
----
-
-## Uninstalling
-
-- Delete `zen-colorscheme-toggle-sparkle.uc.js` or `zen-colorscheme-toggle-sun.uc.js` from `chrome/JS/`
-- Remove the toggle CSS from your `userChrome.css`
-- Clear startup cache once more
-
-To fully remove fx-autoconfig: delete `config.js` and `defaults/` from Zen's install directory (if you didn't get a prompt that files already exist), and delete `utils/`, `JS/`, and `resources/` from your `chrome/` folder.
-
----
-
-## Troubleshooting
-
-**Button not appearing** — Make sure the `.uc.js` is inside `chrome/JS/`, not directly in `chrome/`. Verify fx-autoconfig is installed correctly and that you cleared the startup cache.
-
-**Icon invisible or wrong color** — Set `svg.context-properties.content.enabled` to `true` in `about:config`.
-
-**CSS not applying** — Check that `zen.themes.disable-all` is not `true` in `about:config`.
-
----
-
-## How it works (technical)
-
-The fx-autoconfig version registers a toolbar widget using `UC_API.Utils.createWidget()`, and the Sine version uses `CustomizableUI.createWidget()` directly — both allow the button to be dragged to any toolbar position and appear in the Customize menu.
-
-The icon is set as a data URI SVG on the button's existing `<image class="toolbarbutton-icon">` element, using `context-fill` so it inherits the toolbar icon color automatically. No extra DOM elements are added — hover, sizing, and alignment are handled natively by the toolbarbutton.
-
-Workspace defaults are stored as a JSON map in a browser preference, keyed by workspace UUID. A `TabSelect` listener detects workspace changes and applies the saved default automatically. Left-click overrides are tracked in-memory per workspace for the session and take priority over the saved default until the browser restarts.
-
-On each click, it reads `window.matchMedia("(prefers-color-scheme: dark)")` to detect your system preference, then writes to `layout.css.prefers-color-scheme.content-override`:
-
-| Value | Effect |
-|-------|--------|
-| `3` | Automatic (follows system/browser theme) |
-| `0` | Force Dark on all websites |
-| `1` | Force Light on all websites |
-
-This is the same preference Zen's *Settings → General → Website Appearance* controls.
+Test commands, scratch regeneration, native evidence and rollback limits are in [verification/README.md](verification/README.md). The earlier Essentials repair is retained in [the 1.1.1 report](verification/essentials-1.1.1.md).

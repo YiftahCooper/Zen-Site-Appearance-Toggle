@@ -1,0 +1,100 @@
+{
+  "sineCommit": "fb0bd4ca6af888f10648e126947f7d1f82228433",
+  "checks": [
+    {
+      "name": "actual Sine loader creates toolbar",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "Sine loaded script applies old saved workspace choice",
+      "actual": "dark",
+      "expected": "dark",
+      "passed": true
+    },
+    {
+      "name": "loading old saved choices does not rewrite them",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "actual Sine Configure renderer receives SAT controls",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "Sine Configure dialog opens",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "Configure writes native preference through actual loader",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "name": "Sine rebuild keeps one settings panel",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "name": "Sine rebuild keeps one toolbar widget",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "name": "Sine disable removes toolbar and controller",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "Sine disable removes settings panel",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "name": "Sine disable releases owned override",
+      "actual": "none",
+      "expected": "none",
+      "passed": true
+    },
+    {
+      "name": "Sine disable preserves browser default",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "name": "Sine reenable restores controller and choice",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "Sine reenable restores one settings panel",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "name": "Configure reopens with the saved native default",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    }
+  ],
+  "identity": {
+    "version": "1.22.3b",
+    "gecko": "156.0.1"
+  },
+  "sourceSHA256": "8769b45b1f94de1fa1fc624e82dc5a06f7c88f058f8acc02d47c65f9da463f25"
+}

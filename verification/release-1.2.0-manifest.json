@@ -1,0 +1,26 @@
+{
+  "version": "1.2.0",
+  "verifiedOn": "2026-10-01",
+  "nodeTests": 51,
+  "nativeAppearanceChecks": 43,
+  "sineManagerChecks": 15,
+  "nativePrivateChecks": 4,
+  "packageSHA256": {
+    "theme.json": "f6786280704a97ec81a5d8704c90399df1fc2b7fb3f8f0ccce4582aa6207c281",
+    "preferences.json": "3fc9a92e3bca5eecfa6126e8d3e4ec8ea8e3b34a353961e88cfbef4f55a238ca",
+    "chrome/userChrome.css": "37f974c2493fdb644a6cfe81532966f90654e6221d7ef4e5669b9113b7b91c99",
+    "sine/JS/zen-colorscheme-toggle.uc.js": "8769b45b1f94de1fa1fc624e82dc5a06f7c88f058f8acc02d47c65f9da463f25",
+    "sine/JS/appearance-settings.uc.js": "32c0331bf7f25508d3b39465c57a741e51ccdf569454e9841c6156264f843143",
+    "chrome/JS/moon-sparkle/zen-colorscheme-toggle-sparkle.uc.js": "29782590dc86e07fa833fe6efe3e94f9a9293e86192e0dfdd76f5ea6c4f05e11",
+    "chrome/JS/moon-sun/zen-colorscheme-toggle-sun.uc.js": "0ec764dca1bca94223c0839ef36e2576afaa67bfe24cd945af14b42d3dbbbc1c"
+  },
+  "nativeAppearanceSourceHashKind": "LF-normalized evaluated source",
+  "nativeSineSourceHashKind": "file bytes",
+  "nativePrivateSourceHashKind": "LF-normalized evaluated source",
+  "limits": [
+    "Google Search and Images rendered results unverified; traffic challenge in disposable test",
+    "Google own theme can override browser; navigation may be required",
+    "No everyday-profile installation or acceptance claimed",
+    "Native Firefox/fx-autoconfig loading untested"
+  ]
+}

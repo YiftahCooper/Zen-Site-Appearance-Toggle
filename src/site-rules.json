@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "groups": [
+    {"key":"service:google-search","label":"Google Search and Images","hosts":["google.com","www.google.com","images.google.com"],"source":"https://support.google.com/websearch/answer/185515"}
+  ],
+  "separateSubdomains": ["google.com", "microsoft.com", "live.com", "office.com", "amazon.com", "apple.com", "yahoo.com"],
+  "note": "These service domains default to independent subdomains except bare/www. Generic sites use the native public suffix service. Keys in version 1 remain stable; corrections can be configured explicitly."
+}

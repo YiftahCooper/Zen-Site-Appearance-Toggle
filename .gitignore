@@ -1,3 +1,8 @@
 .backup-scratch/
 __pycache__/
 *.pyc
+verification/everyday-*.json
+tests/capture_everyday_appearance.py
+tests/everyday_theme_actions.py
+tests/everyday_theme_restoration.py
+tests/everyday_google_settings.py

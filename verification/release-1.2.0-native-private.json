@@ -1,0 +1,33 @@
+{
+  "sourceSHA256": "261e8bbdd0116817556d50057cda4ea7093ded12730dfc1dce60bb5eb9f56b9d",
+  "checks": [
+    {
+      "name": "private window is identified by native API",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "private toolbar choice is applied",
+      "actual": "dark",
+      "expected": "dark",
+      "passed": true
+    },
+    {
+      "name": "private choice leaves both saved maps untouched",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "private stop releases override",
+      "actual": "none",
+      "expected": "none",
+      "passed": true
+    }
+  ],
+  "identity": {
+    "version": "1.22.3b",
+    "gecko": "156.0.1"
+  }
+}

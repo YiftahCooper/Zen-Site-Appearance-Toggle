@@ -1,0 +1,401 @@
+{
+  "sourceSHA256": "261e8bbdd0116817556d50057cda4ea7093ded12730dfc1dce60bb5eb9f56b9d",
+  "checks": [
+    {
+      "name": "load preserves native default",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "toolbar dark choice renders dark",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "unrelated site remains light",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "background first tab stays dark",
+      "actual": "dark",
+      "expected": "dark",
+      "pass": true
+    },
+    {
+      "name": "same website path restores choice",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "destination releases old choice",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "explicit System follows native system dark",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "inherit restores global Light",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "native default still unchanged",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "native public suffix separates tenants",
+      "actual": [
+        "alice.github.io",
+        "bob.github.io",
+        "example.co.uk"
+      ],
+      "expected": [
+        "alice.github.io",
+        "bob.github.io",
+        "example.co.uk"
+      ],
+      "pass": true
+    },
+    {
+      "name": "Essential follows B Light",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "Essential follows A Dark",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "same Essential changes on actual workspace switch",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "combined mode does not leak to A",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "combined mode restores B exception",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "unload clears owned override",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "reenable reapplies saved choice",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "saved site persists across browser restart",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "site records retained across mode changes and restart",
+      "actual": "{\"version\":1,\"sites\":{\"host:localhost:54436\":\"dark\"},\"workspaceSites\":{\"{c58d2023-b8dc-4669-a216-29896951e3bf}\":{\"host:127.0.0.1:54436\":\"dark\"}},\"groups\":{}}",
+      "expected": "{\"version\":1,\"sites\":{\"host:localhost:54436\":\"dark\"},\"workspaceSites\":{\"{c58d2023-b8dc-4669-a216-29896951e3bf}\":{\"host:127.0.0.1:54436\":\"dark\"}},\"groups\":{}}",
+      "pass": true
+    },
+    {
+      "name": "native discard succeeds",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "controller does not awaken discarded tab",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "restored tab regains saved dark rendering",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "second window restores same saved site",
+      "actual": "dark",
+      "expected": "dark",
+      "pass": true
+    },
+    {
+      "name": "second-window change synchronises first window rendering",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "native tab transfer keeps saved override after source cleanup",
+      "actual": "dark",
+      "expected": "dark",
+      "pass": true
+    },
+    {
+      "name": "tab transferred back retains actual dark rendering",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "native System follows light OS despite dark browser content theme",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "browser content theme is genuinely dark",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "legacy browser-theme default renders dark despite light OS",
+      "actual": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "expected": {
+        "dark": true,
+        "bg": "rgb(0, 0, 0)"
+      },
+      "pass": true
+    },
+    {
+      "name": "toolbar reads actual legacy browser-theme default",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "toolbar refreshes when inherited content theme becomes light",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "toolbar refreshes when inherited content theme becomes dark",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "legacy browser-theme default toggles to rendered light",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "toggle actually lightens when global and system are both dark",
+      "actual": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "expected": {
+        "dark": false,
+        "bg": "rgb(255, 255, 255)"
+      },
+      "pass": true
+    },
+    {
+      "name": "native preferences fixture mounts settings bridge",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "opening Configure preserves native Dark",
+      "actual": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "Configure changes actual native default",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "real native System chooser writes its actual value",
+      "actual": 2,
+      "expected": 2,
+      "pass": true
+    },
+    {
+      "name": "real native System chooser is reflected in Configure",
+      "actual": "2",
+      "expected": "2",
+      "pass": true
+    },
+    {
+      "name": "legacy Auto displays System in Configure",
+      "actual": "2",
+      "expected": "2",
+      "pass": true
+    },
+    {
+      "name": "displaying legacy Auto does not rewrite preference",
+      "actual": 3,
+      "expected": 3,
+      "pass": true
+    },
+    {
+      "name": "Configure System writes native System value",
+      "actual": 2,
+      "expected": 2,
+      "pass": true
+    },
+    {
+      "name": "Configure System updates actual native chooser",
+      "actual": "auto",
+      "expected": "auto",
+      "pass": true
+    }
+  ],
+  "identity": {
+    "version": "1.22.3b",
+    "gecko": "156.0.1"
+  }
+}
