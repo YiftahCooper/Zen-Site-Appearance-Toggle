@@ -1,7 +1,7 @@
 {
   "id": "zen-site-appearance-toggle",
   "name": "Zen Site Appearance Toggle",
-  "description": "Remember website appearance per workspace, per site, or per site within each workspace.",
+  "description": "Remember appearance for each website, shared across workspaces or separately within each workspace.",
   "homepage": "https://github.com/YiftahCooper/Zen-Site-Appearance-Toggle",
   "image": "https://raw.githubusercontent.com/YiftahCooper/Zen-Site-Appearance-Toggle/main/images/zen-site-appearance-toggle-preview.png",
   "style": {
@@ -28,13 +28,13 @@
   "supportsUnload": true,
   "readme": "https://raw.githubusercontent.com/YiftahCooper/Zen-Site-Appearance-Toggle/main/README.md",
   "author": "ravenothere",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "tags": [
     "Javascript",
     "Toolbar"
   ],
   "createdAt": "2026-03-03",
-  "updatedAt": "2026-10-01",
+  "updatedAt": "2026-10-03",
   "fork": [
     "zen"
   ]

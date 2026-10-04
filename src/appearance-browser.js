@@ -8,8 +8,10 @@ function satWrite(store){
   if(Services.prefs.getStringPref(SAT_LEGACY,'{}')!==raw.legacy)Services.prefs.setStringPref(SAT_LEGACY,raw.legacy);
 }
 function satScope(win){
-  const v=Services.prefs.getStringPref(SAT_PREFIX+'scope','workspace');
-  return !win.gZenWorkspaces?'site':['workspace','site','workspace-site'].includes(v)?v:'workspace';
+  const v=Services.prefs.getStringPref(SAT_PREFIX+'scope','site');
+  // A toolbar action always belongs to its website. Retain old workspace
+  // records on disk, but do not reuse a workspace-wide exception for all sites.
+  return !win.gZenWorkspaces?'site':v==='workspace'?'workspace-site':['site','workspace-site'].includes(v)?v:'site';
 }
 function satSite(url,store){return AppearancePolicy.recogniseSite(url,{baseDomain:h=>Services.eTLD.getBaseDomainFromHost(h),userRules:store.groups});}
 function satEnvironment(win,notify){

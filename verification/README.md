@@ -1,4 +1,8 @@
-# Version 1.2.0 verification
+# Verification
+
+The current release is covered by [version 1.3.0 verification](release-1.3.0.md). The account below is retained as historical evidence for 1.2.0; its limitations and behavior describe that older version.
+
+## Version 1.2.0 verification
 
 Verified on 1 October 2026 with Zen 1.22.3b / Gecko 156.0.1. Tests used fresh disposable profiles and synthetic tabs. Publication is separate from everyday-profile installation and acceptance.
 

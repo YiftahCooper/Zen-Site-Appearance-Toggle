@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..'),PREF='layout.css.prefers-color-scheme.co
 const sources=['sine/JS/zen-colorscheme-toggle.uc.js','chrome/JS/moon-sparkle/zen-colorscheme-toggle-sparkle.uc.js','chrome/JS/moon-sun/zen-colorscheme-toggle-sun.uc.js'];
 const flush=()=>new Promise(r=>setTimeout(r,10));
 function environment(source,{shared,workspace='A',essential=false,zen=true}={}){
- shared??={prefs:new Map([[PREF,1]]),observers:new Set(),windows:new Set(),widget:null,writes:[]};
+ shared??={prefs:new Map([[PREF,1],[PREFIX+'scope','workspace-site']]),observers:new Set(),windows:new Set(),widget:null,writes:[]};
  const dom=new JSDOM('<body><div id="mainPopupSet"></div></body>',{runScripts:'outside-only'}),w=dom.window,doc=w.document,themeObservers=new Set();
  doc.createXULElement=tag=>doc.createElement(tag);const changes=new Set();
  const makeTab=(url,ws)=>{const t=doc.createElement('div');if(ws)t.setAttribute('zen-workspace-id',ws);t.linkedBrowser={currentURI:{spec:url},browsingContext:{prefersColorSchemeOverride:'none'}};return t;};
@@ -51,7 +51,7 @@ for(const source of sources){
   const e=environment(source);try{await flush();e.tab.removeAttribute('zen-workspace-id');
   assert.equal(e.api().controller.currentContext().workspaceId,null);assert.throws(()=>e.api().controller.choose('dark'));
   assert.equal(e.shared.prefs.has(PREFIX+'workspacemap'),false);
-  e.tab.setAttribute('zen-workspace-id','B');e.api().controller.choose('dark');assert.equal(JSON.parse(e.shared.prefs.get(PREFIX+'workspacemap')).B,2);
+  e.tab.setAttribute('zen-workspace-id','B');e.api().controller.choose('dark');assert.equal(JSON.parse(e.shared.prefs.get(PREFIX+'state')).workspaceSites.B['domain:example.com'],'dark');
   }finally{e.close();}
  });
  test(source+': selection and Essential switches preserve native default',async()=>{
@@ -62,7 +62,7 @@ for(const source of sources){
  });
  test(source+': additional windows route commands to the owner and share saved choices',async()=>{
   const a=environment(source);await flush();const b=environment(source,{shared:a.shared,workspace:'B',essential:true});
-  try{await flush();b.click();await flush();assert.equal(b.tab.linkedBrowser.browsingContext.prefersColorSchemeOverride,'dark');assert.equal(a.tab.linkedBrowser.browsingContext.prefersColorSchemeOverride,'none');assert.equal(a.other.linkedBrowser.browsingContext.prefersColorSchemeOverride,'dark');}
+  try{await flush();b.click();await flush();assert.equal(b.tab.linkedBrowser.browsingContext.prefersColorSchemeOverride,'dark');assert.equal(a.tab.linkedBrowser.browsingContext.prefersColorSchemeOverride,'none');assert.equal(a.other.linkedBrowser.browsingContext.prefersColorSchemeOverride,'none');}
   finally{b.close();a.close();}
  });
  test(source+': mode changes retain choices and saved site follows navigation',async()=>{

@@ -1,7 +1,7 @@
 [
   {
     "type": "text",
-    "label": "Appearance defaults, remembering mode and site grouping are shown above. Right-click the toolbar button to choose Light, Dark, System or Use browser default for the current scope."
+    "label": "The sparkle or sun means Light; the moon means Dark. Toolbar clicks automatically save this website's choice. Browser default, saved choices and optional hostname grouping are shown above."
   },
   {
     "type": "dropdown",
