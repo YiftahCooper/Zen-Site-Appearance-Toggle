@@ -1,6 +1,6 @@
 # Verification
 
-The current release is covered by [version 1.3.0 verification](release-1.3.0.md). The account below is retained as historical evidence for 1.2.0; its limitations and behavior describe that older version.
+Version 1.3.1 changes the remembering default; see [its focused verification](default-scope-1.3.1.md). The underlying repairs are covered by [version 1.3.0 verification](release-1.3.0.md). The account below is retained as historical evidence for 1.2.0; its limitations and behavior describe that older version.
 
 ## Version 1.2.0 verification
 

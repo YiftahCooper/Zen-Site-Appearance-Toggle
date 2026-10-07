@@ -23,7 +23,7 @@ test('Configure opening preserves default and external native changes stay synch
 });
 
 test('website remembering defaults replace legacy workspace mode without changing retained records',()=>{
- for(const [scope,want] of [[undefined,'site'],['workspace','workspace-site'],['invalid','site'],['site','site'],['workspace-site','workspace-site']]){
+ for(const [scope,want] of [[undefined,'workspace-site'],['workspace','workspace-site'],['invalid','workspace-site'],['site','site'],['workspace-site','workspace-site']]){
   const s=setup({scope,legacy:'{"old-workspace":2}'});
   assert.deepEqual([...s.w.document.getElementById('sat-scope').options].map(o=>o.value),['workspace-site','site']);
   assert.equal(s.w.document.getElementById('sat-scope').value,want);

@@ -135,8 +135,8 @@
       if(!panel?.isConnected||stopped)return;
       const nativeDefault=Services.prefs.getIntPref(SAT_PREF,2);
       defaults.value=String(nativeDefault===0||nativeDefault===1?nativeDefault:2);
-      const nativeScope=Services.prefs.getStringPref(SAT_PREFIX+'scope','site');
-      scope.value=hasWorkspaces&&['workspace','workspace-site'].includes(nativeScope)?'workspace-site':'site';
+      const nativeScope=Services.prefs.getStringPref(SAT_PREFIX+'scope','workspace-site');
+      scope.value=hasWorkspaces&&nativeScope!=='site'?'workspace-site':'site';
       try{
         const s=satRead(),selected=groups.value;
         const keys=new Set([...Object.keys(s.sites),...Object.values(s.groups),...Object.values(s.workspaceSites).flatMap(Object.keys)]);

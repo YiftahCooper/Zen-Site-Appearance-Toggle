@@ -117,10 +117,10 @@ function satWrite(store){
   if(Services.prefs.getStringPref(SAT_LEGACY,'{}')!==raw.legacy)Services.prefs.setStringPref(SAT_LEGACY,raw.legacy);
 }
 function satScope(win){
-  const v=Services.prefs.getStringPref(SAT_PREFIX+'scope','site');
+  const v=Services.prefs.getStringPref(SAT_PREFIX+'scope','workspace-site');
   // A toolbar action always belongs to its website. Retain old workspace
   // records on disk, but do not reuse a workspace-wide exception for all sites.
-  return !win.gZenWorkspaces?'site':v==='workspace'?'workspace-site':['site','workspace-site'].includes(v)?v:'site';
+  return !win.gZenWorkspaces?'site':v==='workspace'?'workspace-site':['site','workspace-site'].includes(v)?v:'workspace-site';
 }
 function satSite(url,store){return AppearancePolicy.recogniseSite(url,{baseDomain:h=>Services.eTLD.getBaseDomainFromHost(h),userRules:store.groups});}
 function satEnvironment(win,notify){
@@ -303,8 +303,8 @@ function satEnvironment(win,notify){
       if(!panel?.isConnected||stopped)return;
       const nativeDefault=Services.prefs.getIntPref(SAT_PREF,2);
       defaults.value=String(nativeDefault===0||nativeDefault===1?nativeDefault:2);
-      const nativeScope=Services.prefs.getStringPref(SAT_PREFIX+'scope','site');
-      scope.value=hasWorkspaces&&['workspace','workspace-site'].includes(nativeScope)?'workspace-site':'site';
+      const nativeScope=Services.prefs.getStringPref(SAT_PREFIX+'scope','workspace-site');
+      scope.value=hasWorkspaces&&nativeScope!=='site'?'workspace-site':'site';
       try{
         const s=satRead(),selected=groups.value;
         const keys=new Set([...Object.keys(s.sites),...Object.values(s.groups),...Object.values(s.workspaceSites).flatMap(Object.keys)]);

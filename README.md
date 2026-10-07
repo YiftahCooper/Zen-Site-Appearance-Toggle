@@ -2,7 +2,9 @@
 
 A toolbar button that remembers whether you want each website to use Light or Dark. Share a website's choice across workspaces, or remember a different choice for that website in each workspace.
 
-**Version 1.3.0** repairs website-only toolbar scope, the Configure dialog and stock GitHub favicon contrast, and adds reversible Google/Gemini setup. See the [verification summary](verification/release-1.3.0.md) for tested behavior and remaining limits.
+**Version 1.3.1:** the default in Zen is now Per site within each workspace; explicit mode selections are preserved. See the [follow-up verification](verification/default-scope-1.3.1.md).
+
+Version 1.3.0 repaired website-only toolbar scope, the Configure dialog and stock GitHub favicon contrast, and added reversible Google/Gemini setup. Those repairs remain in 1.3.1. See the [verification summary](verification/release-1.3.0.md) for tested behavior and remaining limits.
 
 ## Using the button
 
@@ -29,7 +31,7 @@ The toolbar changes the current website's choice. It never changes the browser-w
 
 An ordinary tab uses the workspace it belongs to. Shared Essentials use the active workspace of their window. Background tabs keep their own appearance instead of changing whenever you select an unrelated tab.
 
-Each mode retains its own saved choices. Switching modes does not erase them or blend them together. A missing choice uses the browser default. The initial mode is Per site; Firefox also uses Per site because it has no Zen workspaces. An old Per workspace setting now means Per site within each workspace. Old workspace-wide records remain visible as inactive legacy entries and are not applied to unrelated websites.
+Each mode retains its own saved choices. Switching modes does not erase them or blend them together. A missing choice uses the browser default. The initial mode in Zen is **Per site within each workspace**; an explicitly selected mode is preserved. Firefox uses Per site because it has no Zen workspaces. An old Per workspace setting also means Per site within each workspace. Old workspace-wide records remain visible as inactive legacy entries and are not applied to unrelated websites.
 
 Choices made in a private window are temporary and do not write to the normal saved settings. SAT does not automatically change website-owned theme settings there: a supported website must already use System/Device default. Change persistent configuration from a normal window.
 
