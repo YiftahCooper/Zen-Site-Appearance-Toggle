@@ -5,7 +5,8 @@ import marionette
 ROOT=Path(__file__).resolve().parents[1]
 class Browser:
     def __init__(self, network=False, profile=None):
-        self.profile=profile or ROOT/'.backup-scratch'/('appearance-'+str(time.time_ns()))
+        self.profile=Path(profile or ROOT/'.backup-scratch'/('appearance-'+str(time.time_ns()))).resolve()
+        if not self.profile.is_relative_to((ROOT/'.backup-scratch').resolve()):raise RuntimeError('Disposable profile must stay in owned project scratch')
         self.profile.mkdir(parents=True,exist_ok=True)
         with socket.socket() as s:s.bind(('127.0.0.1',0));self.port=s.getsockname()[1]
         prefs={'marionette.enabled':True,'marionette.port':self.port,'remote.allowSystemAccess':True,
@@ -16,15 +17,25 @@ class Browser:
         if not network:prefs.update({'network.proxy.type':1,'network.proxy.http':'127.0.0.1','network.proxy.http_port':9,'network.proxy.ssl':'127.0.0.1','network.proxy.ssl_port':9,'network.proxy.no_proxies_on':'localhost, 127.0.0.1'})
         (self.profile/'user.js').write_text('\n'.join(f'user_pref({json.dumps(k)}, {json.dumps(v)});' for k,v in prefs.items()),encoding='utf-8')
         self.log=open(self.profile/'process.log','ab');self.c=None
-        self.p=subprocess.Popen([r'C:\Program Files\Zen Browser\zen.exe','-headless','-no-remote','-marionette','--remote-allow-system-access','-profile',str(self.profile)],env=dict(os.environ,MOZ_DISABLE_CONTENT_SANDBOX='1'),stdout=self.log,stderr=self.log,creationflags=subprocess.CREATE_NO_WINDOW)
+        binary=Path(os.environ.get('SAT_NATIVE_BINARY',r'C:\Program Files\Zen Browser\zen.exe')).resolve()
+        if os.environ.get('SAT_NATIVE_BINARY') and not binary.is_relative_to((ROOT/'.backup-scratch').resolve()):raise RuntimeError('Alternate runtime must be in owned project scratch')
+        args=[str(binary)]
+        if os.environ.get('SAT_NATIVE_HEADFUL')!='1':args.append('-headless')
+        args+=['-no-remote','-marionette','--remote-allow-system-access','-profile',str(self.profile)]
+        child_env=dict(os.environ)
+        if child_env.get('SAT_NATIVE_CONTENT_SANDBOX')=='1':child_env.pop('MOZ_DISABLE_CONTENT_SANDBOX',None)
+        else:child_env['MOZ_DISABLE_CONTENT_SANDBOX']='1'
+        self.p=subprocess.Popen(args,env=child_env,stdout=self.log,stderr=self.log,creationflags=subprocess.CREATE_NO_WINDOW)
         try:
             marionette.PROFILE=self.profile;marionette.PORT=self.port
-            for _ in range(80):
+            deadline=time.monotonic()+35
+            while time.monotonic()<deadline:
+                if self.p.poll() is not None:raise RuntimeError('Owned disposable Zen exited during startup: '+str(self.p.returncode))
                 time.sleep(.25)
                 try:self.c=marionette.Client();break
                 except (ConnectionRefusedError,socket.timeout):pass
             if not self.c:raise RuntimeError('Disposable Zen unavailable')
-            self.chrome('return gZenWorkspaces.promiseInitialized.then(()=>true);')
+            self.chrome("return Promise.race([gZenWorkspaces.promiseInitialized.then(()=>true),new Promise((_,reject)=>setTimeout(()=>reject(Error('Disposable workspace initialization timed out')),10000))]);")
         except: self.close();raise
     def context(self,name):self.c.command('Marionette:SetContext',{'value':name})
     def chrome(self,script,*args):self.context('chrome');return self.c.execute(script,list(args))

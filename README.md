@@ -2,7 +2,9 @@
 
 A toolbar button that remembers whether you want each website to use Light or Dark. Share a website's choice across workspaces, or remember a different choice for that website in each workspace.
 
-**Version 1.3.1:** the default in Zen is now Per site within each workspace; explicit mode selections are preserved. See the [follow-up verification](verification/default-scope-1.3.1.md).
+**Version 1.3.2:** the toolbar icon and next-click action follow the selected page's detected appearance, including changes made with the website's own theme controls. See [the verification notes](verification/page-appearance-1.3.2.md).
+
+Version 1.3.1 made Per site within each workspace the default in Zen; explicit mode selections are preserved. See the [follow-up verification](verification/default-scope-1.3.1.md).
 
 Version 1.3.0 repaired website-only toolbar scope, the Configure dialog and stock GitHub favicon contrast, and added reversible Google/Gemini setup. Those repairs remain in 1.3.1. See the [verification summary](verification/release-1.3.0.md) for tested behavior and remaining limits.
 
@@ -17,6 +19,10 @@ Right-click the button for four choices:
 - **Use browser default** removes the exception for this scope.
 
 The sparkle or sun represents **Light**; the moon represents **Dark**. System is a separate right-click choice. The tooltip describes what the next click will do.
+
+SAT samples the visible surfaces of the selected, loaded web page. The icon follows the detected Light/Dark appearance even when it differs from the browser request or a saved SAT choice. Changes made using a website's own theme controls are checked every 750 ms; a toolbar click also reads the current page before choosing the opposite appearance. Detection does not save a choice or change the website's own setting.
+
+Mixed colours, image backgrounds and other complex surfaces can make detection uncertain. In that case the icon falls back to the requested appearance and the tooltip says that the page theme was not detected. If a website stays Light despite a Dark request, a detected light icon continues to describe the visible page; the tooltip explains the difference. The selected page alone is sampled, and hidden windows and unloaded tabs are skipped.
 
 The toolbar changes the current website's choice. It never changes the browser-wide default or applies an exception to unrelated websites. On supported Google Search and Gemini pages, the first deliberate toolbar choice also makes the website's own theme follow the browser. SAT saves the original website setting for **Undo website setup** in Configure. Other websites may still ignore browser appearance requests when they have their own explicit theme.
 

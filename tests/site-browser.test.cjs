@@ -9,8 +9,33 @@ function fixture(){
  const global=()=>({serial:++serial,documentURI:{spec:t.linkedBrowser.currentURI.spec},getActor:()=>({sendQuery:(name,data)=>{calls.push({name,data});if(data.operation==='capture'&&captureReplies.length)return Promise.resolve(captureReplies.shift());if(data.operation==='capture')return Promise.resolve({scroll:{x:0,y:120},searchInput:{value:'unsent fixture',focused:true,selectionStart:3,selectionEnd:3,selectionDirection:'none'}});if(data.operation==='device-report')return Promise.resolve(deviceReplies.length?deviceReplies.shift():{completed:true});if(data.operation==='restore')return Promise.resolve(restoreReplies.length?restoreReplies.shift():{restored:true,searchTextPreserved:true});const sample=data.operation==='appearance'?samples.shift():null;return data.operation==='appearance'?Promise.resolve(typeof sample==='function'?sample():sample||{mediaDark:false,pcs:['1']}):controlReplies.length?Promise.resolve(controlReplies.shift()):new Promise(()=>{});},sendAsyncMessage:(name,data)=>calls.push({name,data})})});
  t.linkedBrowser.browsingContext.currentWindowGlobal=global();t.linkedBrowser.loadURI=(uri,options)=>{calls.push({url:uri.spec,options});t.linkedBrowser.currentURI.spec=uri.spec;t.linkedBrowser.browsingContext.currentWindowGlobal=global();};t.linkedBrowser.reloadWithFlags=flags=>{calls.push({reload:flags});t.linkedBrowser.browsingContext.currentWindowGlobal=global();};tabs.push(t);win.gBrowser.selectedTab=t;return t;}
  win.gBrowser.addTab=url=>{calls.push({temporaryURL:url});const selected=win.gBrowser.selectedTab,t=tab(url);win.gBrowser.selectedTab=selected;return t;};win.gBrowser.removeTab=t=>{t.isConnected=false;};
- return {api,win,calls,tab,samples,controlReplies,restoreReplies,captureReplies,deviceReplies};
+ return {api,win,calls,tab,samples,controlReplies,restoreReplies,captureReplies,deviceReplies,ctx};
 }
+
+test('generic appearance transport is read-only and accepts HTTP with a nondefault port',async()=>{
+ const f=fixture();try{const t=f.tab('http://example.org:8080/new'),queries=[];
+ t.linkedBrowser.browsingContext.currentWindowGlobal.getActor=()=>({sendQuery:(name,data)=>{queries.push(data);return Promise.resolve({theme:'light',reason:'palette'});},sendAsyncMessage(){}});
+ assert.equal((await f.api.observeAppearance(t)).theme,'light');assert.deepEqual(queries.map(q=>q.operation),['page-appearance']);assert.equal(f.calls.length,0);
+ }finally{f.api.stop();}
+});
+test('generic transport rejects a result from a replaced document',async()=>{
+ const f=fixture();try{const t=f.tab('https://example.org/');let finish;
+ const wg=t.linkedBrowser.browsingContext.currentWindowGlobal;wg.getActor=()=>({sendQuery:()=>new Promise(r=>finish=r),sendAsyncMessage(){}});
+ const pending=f.api.observeAppearance(t);t.linkedBrowser.browsingContext.currentWindowGlobal={};finish({theme:'dark'});await assert.rejects(pending,/changed|navigat/);
+ }finally{f.api.stop();}
+});
+test('pending and background tabs cannot trigger generic appearance reads',async()=>{
+ const f=fixture();try{const t=f.tab('https://example.org/');t.hasAttribute=n=>n==='pending';Object.defineProperty(t.linkedBrowser,'browsingContext',{get(){throw Error('Pending tab accessed');}});
+ assert.equal((await f.api.observeAppearance(t)).theme,null);t.hasAttribute=()=>false;f.tab('https://other.org/');assert.equal((await f.api.observeAppearance(t)).theme,null);assert.equal(f.calls.length,0);
+ }finally{f.api.stop();}
+});
+test('registered actor enables HTTP readback while mutating website actions stay restricted',async()=>{
+ const f=fixture();try{const t=f.tab('https://example.org/');let registration;
+ f.win.__satSiteRegistry.registered=false;f.ctx.ChromeUtils.registerWindowActor=(_,options)=>registration=options;
+ t.linkedBrowser.browsingContext.currentWindowGlobal.getActor=()=>({sendQuery:()=>Promise.resolve({theme:'dark'}),sendAsyncMessage(){}});
+ await f.api.observeAppearance(t);assert.deepEqual(Array.from(registration.matches),['http://*/*','https://*/*']);assert.equal(registration.allFrames,false);assert.equal(f.api.context(t),null);
+ }finally{f.api.stop();}
+});
 test('supported-site context preserves explicit Google and Gemini account routes',()=>{
  const f=fixture();try{for(const [url,account]of [['https://www.google.com/search?q=x&authuser=1','1'],['https://gemini.google.com/u/2/app','2'],['https://gemini.google.com/app?authuser=3','3']]){
  const c=f.api.context(f.tab(url));assert.equal(c.account,account);assert.equal(c.id,c.service+':0:'+account);

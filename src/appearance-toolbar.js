@@ -3,6 +3,34 @@ function startAppearanceToolbar(win){
   win.__zenSiteAppearanceToggle?.stop?.();
   let menu=null,controller,busy=false,alive=true;
   const favicons=startAppearanceFavicons(win),siteSetup=startSiteSetup(win);
+  let pageSample=null,pagePending=null,pageTimer=null;
+  function pageTarget(){
+    const tab=win.gBrowser.selectedTab;
+    if(!tab||!tab.isConnected||tab.closing||tab.hasAttribute('pending')||doc.hidden||typeof siteSetup.observeAppearance!=='function')return null;
+    const browser=tab.linkedBrowser,href=browser?.currentURI?.spec;
+    if(!/^https?:\/\//i.test(href||'')||browser.webProgress?.isLoadingDocument)return null;
+    const document=browser.browsingContext?.currentWindowGlobal;
+    return document?{tab,document,href,requestedDark:controller.effectiveDark()}:null;
+  }
+  const samePage=(a,b)=>!!a&&!!b&&a.tab===b.tab&&a.document===b.document&&a.href===b.href&&a.requestedDark===b.requestedDark;
+  function visibleTheme(){
+    const target=pageTarget();
+    return samePage(pageSample,target)?pageSample.theme:null;
+  }
+  function samplePage(force=false){
+    if(!alive||!controller||busy)return;
+    const target=pageTarget();if(!target){pageSample=null;return;}
+    if(pagePending||!force&&samePage(pageSample,target))return;
+    const pending={target};pagePending=pending;
+    Promise.resolve().then(()=>siteSetup.observeAppearance(target.tab)).then(sample=>{
+      if(alive&&samePage(target,pageTarget()))pageSample={...target,theme:['light','dark'].includes(sample?.theme)?sample.theme:null};
+    },()=>{
+      if(alive&&samePage(target,pageTarget()))pageSample={...target,theme:null};
+    }).finally(()=>{
+      if(pagePending===pending)pagePending=null;
+      if(alive)refresh();
+    });
+  }
   const googleTouched=new WeakMap();let googleTimer=null;
   const scopeNames={workspace:'this workspace',site:'this website','workspace-site':'this website in this workspace'};
   function googleTarget(tab){
@@ -73,12 +101,15 @@ function startAppearanceToolbar(win){
   function refresh(){
     if(!alive||!controller)return;
     scheduleGoogle();
+    samplePage();
     const btn=doc.getElementById(ID);if(!btn)return;
     try{
-      const dark=controller.effectiveDark(),ctx=controller.currentContext();
+      const theme=visibleTheme(),requestedDark=controller.effectiveDark(),dark=theme?theme==='dark':requestedDark,ctx=controller.currentContext();
       const recovery=typeof siteSetup.pendingGoogleDraft?.(win.gBrowser.selectedTab)==='string'?' Right-click to copy the unsent Google search.':'';
-      const text=busy?'Applying this website’s appearance…':win.__satError?'Appearance unavailable: '+win.__satError+recovery:`Switch ${scopeNames[ctx.scope]} to ${dark?'Light':'Dark'}${ctx.site?' — '+ctx.site.label:''}`;
+      const detection=theme?(dark!==requestedDark?` (page remains ${dark?'Dark':'Light'}; ${requestedDark?'Dark':'Light'} requested)`:''):' (page theme not detected; using the requested appearance)';
+      const text=busy?'Applying this website’s appearance…':win.__satError?'Appearance unavailable: '+win.__satError+recovery:`Switch ${scopeNames[ctx.scope]} to ${dark?'Light':'Dark'}${ctx.site?' — '+ctx.site.label:''}${detection}`;
       btn.setAttribute('tooltiptext',text);btn.setAttribute('aria-label',text);
+      btn.setAttribute('data-sat-page-theme',theme||'unknown');
       btn.disabled=busy;
       const light=SAT_VARIANT==='sun'?ORIG_SUN:SAT_VARIANT==='sparkle'?ORIG_SPARKLE:getLightSrc();
       const src=dark?(SAT_VARIANT==='sine'?getMoonSrc():ORIG_MOON):light;
@@ -108,7 +139,24 @@ function startAppearanceToolbar(win){
       finally{busy=false;if(alive)refresh();}
     })();
   }
-  function toggle(){try{return choose(controller.effectiveDark()?'light':'dark',true);}catch(e){win.__satError=e.message;refresh();}}
+  function toggle(){
+    if(busy||!alive)return;
+    try{
+      const target=pageTarget();
+      if(!target)return choose(controller.effectiveDark()?'light':'dark',true);
+      busy=true;refresh();
+      return (async()=>{
+        let theme=null;
+        try{const sample=await siteSetup.observeAppearance(target.tab);theme=sample?.theme;}
+        catch{/* An unavailable read falls back to the requested appearance. */}
+        if(!alive)return;
+        busy=false;
+        if(!samePage(target,pageTarget())){refresh();return;}
+        pageSample={...target,theme:['light','dark'].includes(theme)?theme:null};
+        return choose((theme?theme==='dark':controller.effectiveDark())?'light':'dark',true);
+      })();
+    }catch(e){busy=false;win.__satError=e.message;refresh();}
+  }
   function context(event){
     if(!event.target.closest?.('#'+ID))return;
     event.preventDefault();event.stopPropagation();
@@ -130,7 +178,7 @@ function startAppearanceToolbar(win){
     (doc.getElementById('mainPopupSet')||doc.documentElement).appendChild(menu);menu.openPopupAtScreen(event.screenX,event.screenY,true);
   }
   const api={controller,siteSetup,toggle,refresh,choose,get busy(){return busy;},stop(){
-    if(!alive)return;alive=false;if(googleTimer!==null){win.clearTimeout(googleTimer);googleTimer=null;}siteSetup.stop();favicons.stop();controller.stop();doc.removeEventListener('contextmenu',context,true);win.removeEventListener('unload',api.stop);
+    if(!alive)return;alive=false;if(googleTimer!==null){win.clearTimeout(googleTimer);googleTimer=null;}if(pageTimer!==null)win.clearInterval(pageTimer);pageSample=null;siteSetup.stop();favicons.stop();controller.stop();doc.removeEventListener('contextmenu',context,true);win.removeEventListener('unload',api.stop);
     menu?.remove();if(win.__zenSiteAppearanceToggle===api)delete win.__zenSiteAppearanceToggle;
     const any=Array.from(CustomizableUI.windows).some(w=>w.__zenSiteAppearanceToggle);
     if(!any)CustomizableUI.destroyWidget(ID);
@@ -141,7 +189,7 @@ function startAppearanceToolbar(win){
     onCommand:event=>event.target.ownerDocument.defaultView.__zenSiteAppearanceToggle?.toggle()});
   doc.addEventListener('contextmenu',context,true);win.addEventListener('unload',api.stop,{once:true});
   win.addUnloadListener?.(api.stop);
-  controller.start();return api;
+  controller.start();pageTimer=win.setInterval(()=>samplePage(true),750);return api;
 }
 if(document.readyState==='complete')startAppearanceToolbar(window);
 else window.addEventListener('load',()=>startAppearanceToolbar(window),{once:true});

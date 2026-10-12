@@ -32,7 +32,9 @@ function startSiteSetup(win){
       handler.setSubstitution('sat-site-appearance',Services.io.newURI('.',null,Services.io.newURI(uri)));
       uri='resource://sat-site-appearance/appearance-site-child.mjs';
     }
-    ChromeUtils.registerWindowActor(ACTOR,{child:{esModuleURI:uri+'?v=1.3.0'},matches:['https://gemini.google.com/*','https://www.google.com/*','https://google.com/*','https://images.google.com/*'],remoteTypes:['web'],safeForUntrustedWebProcess:true,allFrames:false});
+    // General pages receive only the read-only appearance operation. The child
+    // keeps all website-setting operations behind the original service gates.
+    ChromeUtils.registerWindowActor(ACTOR,{child:{esModuleURI:uri+'?v=1.3.2'},matches:['http://*/*','https://*/*'],remoteTypes:['web'],safeForUntrustedWebProcess:true,allFrames:false});
     registry.registered=true;
   }
   async function ready(tab,expected,previous=null){
@@ -97,6 +99,18 @@ function startSiteSetup(win){
     write:j=>Services.prefs.setStringPref(KEY,JSON.stringify(j)),control});
   const matchesGoogle=(s,dark)=>s.mediaDark===dark&&s.pcs.length===1&&s.pcs[0]===(dark?'2':'1');
   return {...api,privateWindow,context,
+    async observeAppearance(tab){
+      const unavailable={theme:null,reason:'unavailable'};
+      if(stopped||!tab||tab!==win.gBrowser.selectedTab||!tab.isConnected||tab.closing||tab.hasAttribute('pending'))return unavailable;
+      const browser=tab.linkedBrowser,href=browser?.currentURI?.spec;
+      if(!/^https?:\/\//i.test(href||'')||browser.webProgress?.isLoadingDocument)return unavailable;
+      const wg=browser.browsingContext?.currentWindowGlobal;if(!wg)return unavailable;
+      const current=()=>!stopped&&tab===win.gBrowser.selectedTab&&tab.isConnected&&!tab.closing&&!tab.hasAttribute('pending')&&browser.currentURI.spec===href&&browser.browsingContext?.currentWindowGlobal===wg;
+      const sample=await query(tab,{operation:'page-appearance'},current);
+      if(!current())throw Error('Page changed before appearance could be read');
+      if(!sample||![null,'light','dark'].includes(sample.theme))return unavailable;
+      return {theme:sample.theme,reason:typeof sample.reason==='string'?sample.reason:'unavailable'};
+    },
     // A failed navigation may remove unsent input. Keep recovery in memory
     // only, accessible solely by the user's explicit copy command.
     pendingGoogleDraft(tab){const values=(drafts.get(tab)||[]).filter(d=>d.failed&&d.snapshot.searchInput).map(d=>d.snapshot.searchInput.value);return values.length?[...new Set(values)].join('\n\n'):null;},

@@ -9,7 +9,7 @@ class Client:
     def __init__(self):
         if PROFILE is None:
             raise RuntimeError('Caller must specify the exact disposable profile before connecting')
-        self.sock = socket.create_connection(('127.0.0.1', PORT), timeout=5)
+        self.sock = socket.create_connection(('127.0.0.1', PORT), timeout=1)
         self.sock.settimeout(45)
         self.buffer = b''
         self.seq = 0

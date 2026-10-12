@@ -1,5 +1,7 @@
 # Verification
 
+Version 1.3.2 page-theme detection is covered by [its verification notes](page-appearance-1.3.2.md). Publication and everyday-profile acceptance remain separate.
+
 Version 1.3.1 changes the remembering default; see [its focused verification](default-scope-1.3.1.md). The underlying repairs are covered by [version 1.3.0 verification](release-1.3.0.md). The account below is retained as historical evidence for 1.2.0; its limitations and behavior describe that older version.
 
 ## Version 1.2.0 verification

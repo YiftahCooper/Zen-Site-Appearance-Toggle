@@ -1,6 +1,56 @@
+/* Read visible surfaces without changing the page or collecting page content. */
+function readPageAppearance(doc){
+  const uncertain=reason=>({theme:null,reason});
+  const win=doc.defaultView,root=doc.documentElement;
+  if(!win||!root||!doc.body||doc.readyState!=='complete')return uncertain('loading');
+  if(!doc.elementsFromPoint)return uncertain('unavailable');
+  function colour(raw){
+    const match=/^rgba?\(([^)]+)\)$/.exec(raw||'');if(!match)return null;
+    const values=match[1].replace(/\//g,' ').split(/[\s,]+/).filter(Boolean);
+    if(values.length!==3&&values.length!==4)return null;
+    const channels=values.slice(0,3).map(v=>v.endsWith('%')?parseFloat(v)*2.55:Number(v));
+    const alpha=values.length===3?1:values[3].endsWith('%')?parseFloat(values[3])/100:Number(values[3]);
+    return channels.every(v=>Number.isFinite(v)&&v>=0&&v<=255)&&Number.isFinite(alpha)&&alpha>=0&&alpha<=1?[...channels,alpha]:null;
+  }
+  function luminance(rgb){
+    const linear=rgb.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;});
+    return .2126*linear[0]+.7152*linear[1]+.0722*linear[2];
+  }
+  const rootStyle=win.getComputedStyle(root),scheme=rootStyle.colorScheme||'normal';
+  // CSS normal uses a light canvas; a site's supported schemes can opt into
+  // the dark native canvas. Explicitly painted surfaces take precedence.
+  const darkCanvas=scheme.split(/\s+/).includes('dark')&&(!scheme.split(/\s+/).includes('light')||win.matchMedia('(prefers-color-scheme:dark)').matches);
+  const canvas=darkCanvas?[0,0,0]:[255,255,255];
+  function surface(element){
+    if(!element||['img','video','canvas','iframe','svg'].includes(element.localName))return null;
+    const chain=[];
+    for(let e=element;e;e=e.parentElement){if(chain.length>=32)return null;chain.push(e);}
+    let rgb=canvas.slice();
+    for(const e of chain.reverse()){
+      const style=win.getComputedStyle(e);
+      if(style.backgroundImage&&style.backgroundImage!=='none'||style.opacity&&Number(style.opacity)<1||style.mixBlendMode&&style.mixBlendMode!=='normal'||style.filter&&style.filter!=='none')return null;
+      const bg=colour(style.backgroundColor);if(!bg)return null;
+      rgb=rgb.map((v,i)=>bg[i]*bg[3]+v*(1-bg[3]));
+    }
+    const value=luminance(rgb);return value<=.18?'dark':value>=.55?'light':null;
+  }
+  const width=win.innerWidth,height=win.innerHeight;
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<1||height<1)return uncertain('unavailable');
+  const votes={light:0,dark:0};
+  for(const y of [.2,.5,.8])for(const x of [.2,.5,.8]){
+    const element=doc.elementsFromPoint(width*x,height*y)[0],theme=surface(element);
+    if(theme)votes[theme]++;
+  }
+  const theme=votes.light>=7?'light':votes.dark>=7?'dark':null;
+  return theme?{theme,reason:'palette'}:uncertain('mixed-or-complex');
+}
 /* Narrow website-owned controls. This source is embedded in the child actor. */
 async function siteAppearanceAction(doc,request){
   const url=new URL(doc.location.href),win=doc.defaultView;
+  if(request?.operation==='page-appearance'){
+    if(request.isCancelled?.())throw Error('Page appearance read cancelled');
+    return ['http:','https:'].includes(url.protocol)?readPageAppearance(doc):{theme:null,reason:'unavailable'};
+  }
   if(url.protocol!=='https:'||url.port||!['gemini.google.com','www.google.com','google.com','images.google.com'].includes(url.hostname))throw Error('Unsupported website setup');
   if(!['inspect','set','appearance','device-report','capture','restore'].includes(request?.operation))throw Error('Unsupported setup operation');
   const gemini=url.hostname==='gemini.google.com';
