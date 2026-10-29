@@ -1,0 +1,90 @@
+{
+  "repository": "CosmoCreeper/Sine",
+  "commit": "fb0bd4ca6af888f10648e126947f7d1f82228433",
+  "files": [
+    {
+      "path": "src/actors/MarketplaceChild.sys.mjs",
+      "gitBlobSHA1": "4545d832c1d30bf6d4ddead52de1f3e684653a74"
+    },
+    {
+      "path": "src/actors/MarketplaceParent.sys.mjs",
+      "gitBlobSHA1": "e47d495ccce157251bfed3a466f91445dd42697a"
+    },
+    {
+      "path": "src/core/browser.mjs",
+      "gitBlobSHA1": "83a07f6b72c6e20b44b0930fd72590c729123a43"
+    },
+    {
+      "path": "src/core/manager.sys.mjs",
+      "gitBlobSHA1": "fd369429ce46164be89fccf1f503c8d5b1bf3164"
+    },
+    {
+      "path": "src/core/preferences.sys.mjs",
+      "gitBlobSHA1": "8dd88e117c7dba418c2664321b6a464ba9a29ab5"
+    },
+    {
+      "path": "src/core/settings.json",
+      "gitBlobSHA1": "1a06cbf7be8708411ad43e28961b913a6fce3ee0"
+    },
+    {
+      "path": "src/core/settings.mjs",
+      "gitBlobSHA1": "54e8650f538f3c1d9c56e391a7f6f982ee3c8552"
+    },
+    {
+      "path": "src/core/utils.sys.mjs",
+      "gitBlobSHA1": "8e7054ad502072a89263d3d4dfd9d57b8a624bcb"
+    },
+    {
+      "path": "src/services/cmdPalette.mjs",
+      "gitBlobSHA1": "a12ea7c7e57d0e86e59709fac58ad9fd9d89ceca"
+    },
+    {
+      "path": "src/services/injectAPI.sys.mjs",
+      "gitBlobSHA1": "6fa4864452836441948cde2e045f2ba9a7764a55"
+    },
+    {
+      "path": "src/services/marketplace.sys.mjs",
+      "gitBlobSHA1": "7eed9b61d72b6ad3328b24ec46d3851efe0280e4"
+    },
+    {
+      "path": "src/services/module_loader.mjs",
+      "gitBlobSHA1": "3b17c964be7808005ed5cb1d130455834504ff08"
+    },
+    {
+      "path": "src/services/stylesheets.sys.mjs",
+      "gitBlobSHA1": "1725c5981d2e0355124a09995aa1bd82b462729e"
+    },
+    {
+      "path": "src/services/updates.mjs",
+      "gitBlobSHA1": "c60fd75e411afb5bb068f03f645632be39b50c70"
+    },
+    {
+      "path": "src/services/usercontent.sys.mjs",
+      "gitBlobSHA1": "02ebe1ae325647a44641923a10cff244db8245ef"
+    },
+    {
+      "path": "src/sine.sys.mjs",
+      "gitBlobSHA1": "bc04323468914a515d6eb00f41fd910dfa011607"
+    },
+    {
+      "path": "src/styles/main.css",
+      "gitBlobSHA1": "74f2748ef6ad5835fc9a07482ab33e689b8013ca"
+    },
+    {
+      "path": "src/styles/settings.css",
+      "gitBlobSHA1": "c90bf8fd449a16819feb4d041c5f636e3fccc976"
+    },
+    {
+      "path": "src/utils/dom.mjs",
+      "gitBlobSHA1": "1412619f16ba80f1e7cf2c1023d40ab3b8466982"
+    },
+    {
+      "path": "src/utils/toasts.sys.mjs",
+      "gitBlobSHA1": "69718950faf26b318920530a4cc16860b42dc6ab"
+    },
+    {
+      "path": "src/utils/uc_api.sys.mjs",
+      "gitBlobSHA1": "976c3c66592890809a73e99829512404127ff74d"
+    }
+  ]
+}

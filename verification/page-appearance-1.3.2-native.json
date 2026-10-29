@@ -1,0 +1,88 @@
+{
+  "version": "1.3.2",
+  "runtime": {
+    "version": "1.23.2b",
+    "gecko": "157.0.1"
+  },
+  "scriptSHA256": "63ad2ac9932b475761b4a72137fd0ec5dca96899870131b9df3c0c7045626d6b",
+  "status": "PASSED",
+  "checks": [
+    {
+      "name": "unfamiliar native light page uses a light icon under global Dark",
+      "passed": true
+    },
+    {
+      "name": "visiting does not create remembered choices",
+      "passed": true
+    },
+    {
+      "name": "visiting leaves the tab inherited",
+      "passed": true
+    },
+    {
+      "name": "website own Dark control updates the icon",
+      "passed": true
+    },
+    {
+      "name": "website own Dark control updates the next action",
+      "passed": true
+    },
+    {
+      "name": "website own Light control restores the light icon",
+      "passed": true
+    },
+    {
+      "name": "website controls do not save SAT choices",
+      "passed": true
+    },
+    {
+      "name": "first SAT click requests opposite of rendered Light",
+      "passed": true
+    },
+    {
+      "name": "fixed light page keeps its actual light icon after Dark request",
+      "passed": true
+    },
+    {
+      "name": "website choice remains Dark despite actual light rendering",
+      "passed": true
+    },
+    {
+      "name": "navigation to an adaptive document uses its actual dark icon",
+      "passed": true
+    },
+    {
+      "name": "website own override of saved Dark changes the displayed icon",
+      "passed": true
+    },
+    {
+      "name": "observing a website override retains the saved choice",
+      "passed": true
+    },
+    {
+      "name": "complex image background is marked unknown",
+      "passed": true
+    },
+    {
+      "name": "unknown palette explains requested-appearance fallback",
+      "passed": true
+    },
+    {
+      "name": "replacement document cannot retain the previous dark icon",
+      "passed": true
+    },
+    {
+      "name": "global Dark preference remains unchanged",
+      "passed": true
+    },
+    {
+      "name": "stop releases the owned tab appearance override",
+      "passed": true
+    },
+    {
+      "name": "stop removes the runtime and widget",
+      "passed": true
+    }
+  ],
+  "scope": "Offline fixtures in an owned disposable profile; historical run, not everyday acceptance."
+}

@@ -102,4 +102,4 @@ Disabling SAT releases its tab overrides and owned favicon presentation and keep
 
 Edit `src/`, then run `node tools/build.cjs`. The builder produces the Sine script, both standalone icon variants and the settings bridge; no build tools or dependencies run inside the mod.
 
-Test commands, scratch regeneration, native evidence and rollback limits are in [verification/README.md](verification/README.md). The earlier Essentials repair is retained in [the 1.1.1 report](verification/essentials-1.1.1.md).
+Start with [the development guide](docs/DEVELOPMENT.md) for architecture, locked test dependencies, native fixtures, public evidence, release checks and scratch cleanup. [Troubleshooting](docs/TROUBLESHOOTING.md) explains the Google/Gemini, favicon and page-detection findings and their limits. Older version-specific results remain in [verification/README.md](verification/README.md) and the linked release reports.

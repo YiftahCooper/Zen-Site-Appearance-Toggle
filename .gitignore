@@ -1,4 +1,7 @@
 .backup-scratch/
+/.local-private/
+verification/2026-10-03/
+verification/sine-source/
 __pycache__/
 *.pyc
 verification/everyday-*.json
@@ -6,3 +9,4 @@ tests/capture_everyday_appearance.py
 tests/everyday_theme_actions.py
 tests/everyday_theme_restoration.py
 tests/everyday_google_settings.py
+tests/capture_everyday_recurrence.py

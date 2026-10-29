@@ -10,8 +10,9 @@ class Page(BaseHTTPRequestHandler):
 server=ThreadingHTTPServer(('127.0.0.1',0),Page);threading.Thread(target=server.serve_forever,daemon=True).start()
 port=server.server_port
 source=(ROOT/'sine/JS/zen-colorscheme-toggle.uc.js').read_text(encoding='utf-8')
-result={'sourceSHA256':hashlib.sha256(source.encode()).hexdigest(),'checks':[]}
-out=ROOT/'verification'/('native-appearance-'+str(time.time_ns())+'.json')
+result={'sourceSHA256':hashlib.sha256(source.encode()).hexdigest(),'sourceFileSHA256':hashlib.sha256((ROOT/'sine/JS/zen-colorscheme-toggle.uc.js').read_bytes()).hexdigest(),'checks':[]}
+receipts=ROOT/'.backup-scratch/native-contracts';receipts.mkdir(parents=True,exist_ok=True)
+out=receipts/('native-appearance-'+str(time.time_ns())+'.json')
 def check(name,actual,want):
  result['checks'].append({'name':name,'actual':actual,'expected':want,'pass':actual==want})
  print(name,actual==want,actual,flush=True);assert actual==want,(name,actual,want)
@@ -41,6 +42,8 @@ try:
   check('native default still unchanged',b.chrome("return Services.prefs.getIntPref('layout.css.prefers-color-scheme.content-override');"),1)
   check('native public suffix separates tenants',b.chrome("return [Services.eTLD.getBaseDomainFromHost('alice.github.io'),Services.eTLD.getBaseDomainFromHost('bob.github.io'),Services.eTLD.getBaseDomainFromHost('shop.example.co.uk')];"),['alice.github.io','bob.github.io','example.co.uk'])
   b.chrome("Services.prefs.setStringPref('mod.zensiteappearancetoggle.scope','workspace');window.__A=gZenWorkspaces.activeWorkspace;");time.sleep(.15);choose(b,'dark')
+  check('legacy workspace mode resolves to website within workspace',b.chrome('return window.__zenSiteAppearanceToggle.controller.currentContext().scope;'),'workspace-site')
+  check('mapped legacy mode saves A website choice without creating workspace-wide choices',b.chrome("let s=JSON.parse(Services.prefs.getStringPref('mod.zensiteappearancetoggle.state'));return s.workspaceSites[window.__A]['host:127.0.0.1:'+arguments[0]]==='dark'&&Services.prefs.getStringPref('mod.zensiteappearancetoggle.workspacemap','{}')==='{}';",port),True)
   b.chrome('gZenPinnedTabManager.addToEssentials(window.__second);')
   b.chrome("return gZenWorkspaces.createAndSaveWorkspace('Appearance B',undefined,true).then(w=>{window.__B=w.uuid;return true;});")
   b.chrome('return gZenWorkspaces.changeWorkspaceWithID(window.__B);');b.chrome('gBrowser.selectedTab=window.__second;');time.sleep(.2)
@@ -51,7 +54,7 @@ try:
   check('same Essential changes on actual workspace switch',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
   b.chrome("Services.prefs.setStringPref('mod.zensiteappearancetoggle.scope','workspace-site');");time.sleep(.15);choose(b,'dark')
   b.chrome('return gZenWorkspaces.changeWorkspaceWithID(window.__A);');time.sleep(.2)
-  check('combined mode does not leak to A',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('explicit website-within-workspace mode retains A Dark saved through mapped legacy mode',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.chrome('return gZenWorkspaces.changeWorkspaceWithID(window.__B);');time.sleep(.2)
   check('combined mode restores B exception',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.chrome('window.__zenSiteAppearanceToggle.stop();');time.sleep(.15)
@@ -100,6 +103,7 @@ try:
   b.navigate('about:preferences#paneAppearance');time.sleep(.4)
   b.content('''const host=document.createElement('div');host.setAttribute('mod-id','zen-site-appearance-toggle');const inner=document.createElement('div');inner.className='sineItemPreferenceDialogContent';host.appendChild(inner);document.body.appendChild(host);''')
   settings=(ROOT/'sine/JS/appearance-settings.uc.js').read_text(encoding='utf-8')
+  result['settingsEvaluatedSHA256']=hashlib.sha256(settings.encode()).hexdigest()
   b.chrome('''let win=gBrowser.selectedBrowser.contentWindow;let sandbox=Cu.Sandbox(win,{sandboxPrototype:win,wantXrays:false});Cu.evalInSandbox(arguments[0],sandbox);''',settings)
   check('native preferences fixture mounts settings bridge',b.content("return !!document.getElementById('sat-browser-default');"),True)
   check('opening Configure preserves native Dark',b.chrome("return Services.prefs.getIntPref('layout.css.prefers-color-scheme.content-override');"),0)
@@ -116,5 +120,5 @@ try:
   check('Configure System updates actual native chooser',b.content("return document.getElementById('web-appearance-chooser').value;"),'auto')
 except Exception as e:result['error']=repr(e);traceback.print_exc()
 finally:
- server.shutdown();out.write_text(json.dumps(result,indent=2),encoding='utf-8');print(out,flush=True)
+ server.shutdown();server.server_close();result['sourceFileUnchangedAtEnd']=hashlib.sha256((ROOT/'sine/JS/zen-colorscheme-toggle.uc.js').read_bytes()).hexdigest()==result['sourceFileSHA256'];out.write_text(json.dumps(result,indent=2),encoding='utf-8');print(out,flush=True)
 if result.get('error'):raise SystemExit(1)

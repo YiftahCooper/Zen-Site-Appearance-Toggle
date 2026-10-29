@@ -1,0 +1,177 @@
+{
+  "version": "1.3.0",
+  "evaluatedScriptSHA256": "d8f601110ab28fe7b5bdbc8395096ff7bf746541be3e515a1f602f9d9ccaf5fd",
+  "passed": 42,
+  "total": 42,
+  "checks": [
+    {
+      "name": "native regular discard succeeds",
+      "passed": true
+    },
+    {
+      "name": "generated SAT starts favicon component",
+      "passed": true
+    },
+    {
+      "name": "dark-white actual sidebar scheme",
+      "passed": true
+    },
+    {
+      "name": "dark-white regular and Essential presentation",
+      "passed": true
+    },
+    {
+      "name": "dark-white regular and Essential visible geometry",
+      "passed": true
+    },
+    {
+      "name": "dark-white pending regular remains pending",
+      "passed": true
+    },
+    {
+      "name": "dark-white custom unknown other bypass",
+      "passed": true
+    },
+    {
+      "name": "dark-black actual sidebar scheme",
+      "passed": true
+    },
+    {
+      "name": "dark-black regular and Essential presentation",
+      "passed": true
+    },
+    {
+      "name": "dark-black regular and Essential visible geometry",
+      "passed": true
+    },
+    {
+      "name": "dark-black pending regular remains pending",
+      "passed": true
+    },
+    {
+      "name": "dark-black custom unknown other bypass",
+      "passed": true
+    },
+    {
+      "name": "light-white actual sidebar scheme",
+      "passed": true
+    },
+    {
+      "name": "light-white regular and Essential presentation",
+      "passed": true
+    },
+    {
+      "name": "light-white regular and Essential visible geometry",
+      "passed": true
+    },
+    {
+      "name": "light-white pending regular remains pending",
+      "passed": true
+    },
+    {
+      "name": "light-white custom unknown other bypass",
+      "passed": true
+    },
+    {
+      "name": "light-black actual sidebar scheme",
+      "passed": true
+    },
+    {
+      "name": "light-black regular and Essential presentation",
+      "passed": true
+    },
+    {
+      "name": "light-black regular and Essential visible geometry",
+      "passed": true
+    },
+    {
+      "name": "light-black pending regular remains pending",
+      "passed": true
+    },
+    {
+      "name": "light-black custom unknown other bypass",
+      "passed": true
+    },
+    {
+      "name": "real GitHub Light transition reaches stock black source",
+      "passed": true
+    },
+    {
+      "name": "real GitHub Light transition retains actual sidebar rendering",
+      "passed": true
+    },
+    {
+      "name": "real GitHub Dark transition reaches stock white source",
+      "passed": true
+    },
+    {
+      "name": "real GitHub Dark transition retains actual sidebar rendering",
+      "passed": true
+    },
+    {
+      "name": "real regular restores",
+      "passed": true
+    },
+    {
+      "name": "real regular restore remains treated",
+      "passed": true
+    },
+    {
+      "name": "native Essential discard succeeds",
+      "passed": true
+    },
+    {
+      "name": "pending Essential remains treated",
+      "passed": true
+    },
+    {
+      "name": "Essential reaches a loaded replacement document with its stock icon source",
+      "passed": true
+    },
+    {
+      "name": "loaded Essential retains contrast treatment",
+      "passed": true
+    },
+    {
+      "name": "custom selection releases previously treated Essential",
+      "passed": true
+    },
+    {
+      "name": "removing custom reclaims recognized Essential",
+      "passed": true
+    },
+    {
+      "name": "external filter write yields immediately",
+      "passed": true
+    },
+    {
+      "name": "stock source update does not reclaim external filter",
+      "passed": true
+    },
+    {
+      "name": "stop preserves source image native data Essential CSS and reset baseline",
+      "passed": true
+    },
+    {
+      "name": "stop restores existing inline values and priority",
+      "passed": true
+    },
+    {
+      "name": "root stop disconnects favicon component",
+      "passed": true
+    },
+    {
+      "name": "stop removes all owned markers",
+      "passed": true
+    },
+    {
+      "name": "global appearance remains Dark",
+      "passed": true
+    },
+    {
+      "name": "pin baseline unchanged through treatment and lifecycle",
+      "passed": true
+    }
+  ],
+  "scope": "Historical native GitHub/Essential checks. LF-normalised evaluated-source hash; not a new run or everyday acceptance."
+}
