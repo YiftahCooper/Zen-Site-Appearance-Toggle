@@ -1,5 +1,5 @@
 """Native colour/rendering checks in an owned disposable profile only."""
-import hashlib,json,time,threading,traceback
+import hashlib,json,shutil,time,threading,traceback
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from native_support import Browser,ROOT
 class Page(BaseHTTPRequestHandler):
@@ -18,27 +18,40 @@ def check(name,actual,want):
  print(name,actual==want,actual,flush=True);assert actual==want,(name,actual,want)
 def rendering(b):
  return b.content("return {dark:matchMedia('(prefers-color-scheme:dark)').matches,bg:getComputedStyle(document.body).backgroundColor};")
+def settle(b,want,timeout=3):
+ # Toolbar actions read the page asynchronously before applying (1.3.2+);
+ # poll for the final rendered state instead of assuming a fixed delay.
+ end=time.monotonic()+timeout;actual=rendering(b)
+ while actual!=want and time.monotonic()<end:time.sleep(.1);actual=rendering(b)
+ return actual
 def load(b):
  b.chrome("let sandbox=Cu.Sandbox(window,{sandboxPrototype:window,wantXrays:false});Cu.evalInSandbox(arguments[0],sandbox);",source);time.sleep(.15)
 def choose(b,value):b.chrome('window.__zenSiteAppearanceToggle.choose(arguments[0]);',value);time.sleep(.15)
 try:
  with Browser() as b:
   profile=b.profile;result['identity']=b.c.identity
+  # Register chrome://sine like an installed mod so the page-sampling child actor
+  # (queried by toolbar actions since 1.3.2) can load; otherwise every toggle
+  # waits for the 6 s actor timeout before applying.
+  mods=b.profile/'chrome/sine-mods';(mods/'zen-site-appearance-toggle').mkdir(parents=True,exist_ok=True)
+  shutil.copytree(ROOT/'sine',mods/'zen-site-appearance-toggle'/'sine',dirs_exist_ok=True)
+  manifest=b.profile/'chrome/native-appearance.manifest';manifest.write_text('content sine '+mods.as_uri()+'/\n',encoding='utf-8')
+  b.chrome("let f=Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);f.initWithPath(arguments[0]);Components.manager.QueryInterface(Ci.nsIComponentRegistrar).autoRegister(f);",str(manifest))
   b.navigate(f'http://localhost:{port}/first')
   b.chrome("Services.prefs.setIntPref('layout.css.prefers-color-scheme.content-override',1);Services.prefs.setStringPref('mod.zensiteappearancetoggle.scope','site');window.__first=gBrowser.selectedTab;")
   load(b);check('load preserves native default',b.chrome("return Services.prefs.getIntPref('layout.css.prefers-color-scheme.content-override');"),1)
   b.chrome("document.getElementById('zen-colorscheme-toggle').doCommand();");time.sleep(.15)
-  check('toolbar dark choice renders dark',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('toolbar dark choice renders dark',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.chrome("window.__second=gBrowser.addTab(arguments[0],{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});gBrowser.selectedTab=window.__second;",f'http://127.0.0.1:{port}/second');time.sleep(.4)
-  check('unrelated site remains light',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('unrelated site remains light',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   check('background first tab stays dark',b.chrome('return window.__first.linkedBrowser.browsingContext.prefersColorSchemeOverride;'),'dark')
   b.navigate(f'http://localhost:{port}/other?q=another');time.sleep(.15)
-  check('same website path restores choice',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('same website path restores choice',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.navigate(f'http://127.0.0.1:{port}/back');time.sleep(.15)
-  check('destination releases old choice',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('destination releases old choice',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   choose(b,'system');b.chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme',1);");time.sleep(.3)
-  check('explicit System follows native system dark',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
-  choose(b,'inherit');check('inherit restores global Light',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('explicit System follows native system dark',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  choose(b,'inherit');check('inherit restores global Light',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   check('native default still unchanged',b.chrome("return Services.prefs.getIntPref('layout.css.prefers-color-scheme.content-override');"),1)
   check('native public suffix separates tenants',b.chrome("return [Services.eTLD.getBaseDomainFromHost('alice.github.io'),Services.eTLD.getBaseDomainFromHost('bob.github.io'),Services.eTLD.getBaseDomainFromHost('shop.example.co.uk')];"),['alice.github.io','bob.github.io','example.co.uk'])
   b.chrome("Services.prefs.setStringPref('mod.zensiteappearancetoggle.scope','workspace');window.__A=gZenWorkspaces.activeWorkspace;");time.sleep(.15);choose(b,'dark')
@@ -47,30 +60,30 @@ try:
   b.chrome('gZenPinnedTabManager.addToEssentials(window.__second);')
   b.chrome("return gZenWorkspaces.createAndSaveWorkspace('Appearance B',undefined,true).then(w=>{window.__B=w.uuid;return true;});")
   b.chrome('return gZenWorkspaces.changeWorkspaceWithID(window.__B);');b.chrome('gBrowser.selectedTab=window.__second;');time.sleep(.2)
-  choose(b,'light');check('Essential follows B Light',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  choose(b,'light');check('Essential follows B Light',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   b.chrome('return gZenWorkspaces.changeWorkspaceWithID(window.__A);');b.chrome('gBrowser.selectedTab=window.__second;');time.sleep(.2)
-  check('Essential follows A Dark',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('Essential follows A Dark',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.chrome('return gZenWorkspaces.changeWorkspaceWithID(window.__B);');time.sleep(.2)
-  check('same Essential changes on actual workspace switch',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('same Essential changes on actual workspace switch',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   b.chrome("Services.prefs.setStringPref('mod.zensiteappearancetoggle.scope','workspace-site');");time.sleep(.15);choose(b,'dark')
   b.chrome('return gZenWorkspaces.changeWorkspaceWithID(window.__A);');time.sleep(.2)
-  check('explicit website-within-workspace mode retains A Dark saved through mapped legacy mode',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('explicit website-within-workspace mode retains A Dark saved through mapped legacy mode',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.chrome('return gZenWorkspaces.changeWorkspaceWithID(window.__B);');time.sleep(.2)
-  check('combined mode restores B exception',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('combined mode restores B exception',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.chrome('window.__zenSiteAppearanceToggle.stop();');time.sleep(.15)
-  check('unload clears owned override',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
-  load(b);check('reenable reapplies saved choice',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('unload clears owned override',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  load(b);check('reenable reapplies saved choice',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   saved=b.chrome("return Services.prefs.getStringPref('mod.zensiteappearancetoggle.state');")
  with Browser(profile=profile) as b:
   b.navigate(f'http://localhost:{port}/restart')
   b.chrome("Services.prefs.setStringPref('mod.zensiteappearancetoggle.scope','site');")
-  load(b);check('saved site persists across browser restart',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  load(b);check('saved site persists across browser restart',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   check('site records retained across mode changes and restart',b.chrome("return Services.prefs.getStringPref('mod.zensiteappearancetoggle.state');"),saved)
   b.chrome("window.__savedTab=gBrowser.selectedTab;window.__spare=gBrowser.addTab('about:blank',{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});gBrowser.selectedTab=window.__spare;")
   check('native discard succeeds',b.chrome('return gBrowser.discardBrowser(window.__savedTab,true);'),True);time.sleep(.3)
   check('controller does not awaken discarded tab',b.chrome("return window.__savedTab.hasAttribute('pending');"),True)
   b.chrome('gBrowser.selectedTab=window.__savedTab;');time.sleep(.4)
-  check('restored tab regains saved dark rendering',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('restored tab regains saved dark rendering',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.chrome('window.__otherWin=OpenBrowserWindow();')
   for _ in range(80):
    if b.chrome('return !!window.__otherWin.gBrowserInit?.delayedStartupFinished;'):break
@@ -78,28 +91,28 @@ try:
   b.chrome('''let win=window.__otherWin;win.gBrowser.selectedTab=win.gBrowser.addTab(arguments[1],{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});let sandbox=Cu.Sandbox(win,{sandboxPrototype:win,wantXrays:false});Cu.evalInSandbox(arguments[0],sandbox);''',source,f'http://localhost:{port}/second-window');time.sleep(.5)
   check('second window restores same saved site',b.chrome('return window.__otherWin.gBrowser.selectedBrowser.browsingContext.prefersColorSchemeOverride;'),'dark')
   b.chrome('window.__otherWin.__zenSiteAppearanceToggle.choose("light");');time.sleep(.2)
-  check('second-window change synchronises first window rendering',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('second-window change synchronises first window rendering',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   choose(b,'dark')
   b.chrome('''window.__transferred=window.__otherWin.gBrowser.adoptTab(window.__savedTab,0,true);window.__otherWin.__zenSiteAppearanceToggle.controller.refresh();window.__zenSiteAppearanceToggle.controller.refresh();''');time.sleep(.2)
   check('native tab transfer keeps saved override after source cleanup',b.chrome('return window.__transferred.linkedBrowser.browsingContext.prefersColorSchemeOverride;'),'dark')
   b.chrome('''window.__savedTab=gBrowser.adoptTab(window.__transferred,0,true);window.__zenSiteAppearanceToggle.controller.refresh();window.__otherWin.__zenSiteAppearanceToggle.controller.refresh();''');time.sleep(.2)
-  check('tab transferred back retains actual dark rendering',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('tab transferred back retains actual dark rendering',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   b.chrome('window.__otherWin.close();');time.sleep(.2)
   choose(b,'inherit');b.chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme',0);Services.prefs.setIntPref('browser.theme.content-theme',0);Services.prefs.setIntPref('layout.css.prefers-color-scheme.content-override',2);");time.sleep(.3)
   b.navigate(f'http://localhost:{port}/native-system')
-  check('native System follows light OS despite dark browser content theme',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('native System follows light OS despite dark browser content theme',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   check('browser content theme is genuinely dark',b.chrome('return Services.appinfo.contentThemeDerivedColorSchemeIsDark;'),True)
   b.chrome("Services.prefs.setIntPref('layout.css.prefers-color-scheme.content-override',3);");b.navigate(f'http://localhost:{port}/legacy-theme');time.sleep(.2)
-  check('legacy browser-theme default renders dark despite light OS',rendering(b),{'dark':True,'bg':'rgb(0, 0, 0)'})
+  check('legacy browser-theme default renders dark despite light OS',settle(b,{'dark':True,'bg':'rgb(0, 0, 0)'}),{'dark':True,'bg':'rgb(0, 0, 0)'})
   check('toolbar reads actual legacy browser-theme default',b.chrome('return window.__zenSiteAppearanceToggle.controller.effectiveDark();'),True)
   b.chrome("Services.prefs.setIntPref('browser.theme.content-theme',1);");time.sleep(.3)
   check('toolbar refreshes when inherited content theme becomes light',b.chrome("return document.getElementById('zen-colorscheme-toggle').getAttribute('tooltiptext').includes('to Dark');"),True)
   b.chrome("Services.prefs.setIntPref('browser.theme.content-theme',0);");time.sleep(.3)
   check('toolbar refreshes when inherited content theme becomes dark',b.chrome("return document.getElementById('zen-colorscheme-toggle').getAttribute('tooltiptext').includes('to Light');"),True)
   b.chrome("document.getElementById('zen-colorscheme-toggle').doCommand();");time.sleep(.2)
-  check('legacy browser-theme default toggles to rendered light',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('legacy browser-theme default toggles to rendered light',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   b.chrome("Services.prefs.setIntPref('layout.css.prefers-color-scheme.content-override',0);Services.prefs.setIntPref('ui.systemUsesDarkTheme',1);");choose(b,'dark');b.chrome("document.getElementById('zen-colorscheme-toggle').doCommand();");time.sleep(.2)
-  check('toggle actually lightens when global and system are both dark',rendering(b),{'dark':False,'bg':'rgb(255, 255, 255)'})
+  check('toggle actually lightens when global and system are both dark',settle(b,{'dark':False,'bg':'rgb(255, 255, 255)'}),{'dark':False,'bg':'rgb(255, 255, 255)'})
   b.navigate('about:preferences#paneAppearance');time.sleep(.4)
   b.content('''const host=document.createElement('div');host.setAttribute('mod-id','zen-site-appearance-toggle');const inner=document.createElement('div');inner.className='sineItemPreferenceDialogContent';host.appendChild(inner);document.body.appendChild(host);''')
   settings=(ROOT/'sine/JS/appearance-settings.uc.js').read_text(encoding='utf-8')

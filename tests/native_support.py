@@ -23,6 +23,9 @@ class Browser:
         if os.environ.get('SAT_NATIVE_HEADFUL')!='1':args.append('-headless')
         args+=['-no-remote','-marionette','--remote-allow-system-access','-profile',str(self.profile)]
         child_env=dict(os.environ)
+        # Gecko 159+ grants chrome-context Marionette only with this variable;
+        # the --remote-allow-system-access flag alone is no longer sufficient.
+        child_env['MOZ_REMOTE_ALLOW_SYSTEM_ACCESS']='1'
         if child_env.get('SAT_NATIVE_CONTENT_SANDBOX')=='1':child_env.pop('MOZ_DISABLE_CONTENT_SANDBOX',None)
         else:child_env['MOZ_DISABLE_CONTENT_SANDBOX']='1'
         self.p=subprocess.Popen(args,env=child_env,stdout=self.log,stderr=self.log,creationflags=subprocess.CREATE_NO_WINDOW)
