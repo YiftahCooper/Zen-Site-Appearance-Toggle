@@ -62,3 +62,31 @@ test('external Google fragment change after the owned click is rejected',async()
  const s=googleSection();s.other.onclick=()=>s.w.history.replaceState({},'','#other');
  try{let rejected=false;const task=siteAppearanceAction(s.w.document,{operation:'inspect'});task.catch(()=>rejected=true);await tick();assert.equal(rejected,false,'the owned fragment must first be accepted');s.w.history.replaceState({},'','#unrelated');s.ready();await assert.rejects(task,/navigated|changed/i);assert.equal(s.themeClicks(),0);}finally{s.w.close();}
 });
+function themedPage(){
+ const d=new JSDOM('<html><body style="background:white"><main>Fixture</main></body></html>',{url:'https://example.org/app',pretendToBeVisual:true}),w=d.window;
+ const media={listeners:new Set(),addEventListener:(_,f)=>media.listeners.add(f),removeEventListener:(_,f)=>media.listeners.delete(f)};
+ w.matchMedia=()=>media;Object.defineProperty(w.document,'readyState',{value:'complete'});
+ return {w,media,doc:w.document};
+}
+const settle=()=>new Promise(resolve=>setTimeout(resolve,80));
+const watch=(actor,doc,id)=>actor.receiveMessage({name:'SAT:Theme',data:{operation:'watch-appearance',operationId:id,expectedHref:doc.location.href,quiet:10,maxWait:40}});
+for(const [label,change]of [['body attribute',p=>p.doc.body.className='dark'],['html attribute',p=>p.doc.documentElement.setAttribute('data-theme','dark')],['colour-scheme media',p=>{for(const f of p.media.listeners)f();}]])
+ test('generated actor page watch reports a '+label+' change once and disarms',async()=>{
+  const p=themedPage(),Actor=generatedActor(),actor=new Actor();actor.document=p.doc;
+  try{let settled=null;watch(actor,p.doc,'watch-1').then(r=>settled=r);await settle();assert.equal(settled,null,'an unchanged page keeps the watch pending');
+   change(p);await settle();assert.deepEqual({...settled},{changed:true,reason:'changed'});assert.equal(p.media.listeners.size,0);assert.equal(actor.operations.size,0);}
+  finally{p.w.close();}
+ });
+test('generated actor page watch ignores subtree content changes',async()=>{
+ const p=themedPage(),Actor=generatedActor(),actor=new Actor();actor.document=p.doc;
+ try{let settled=null;watch(actor,p.doc,'watch-1').then(r=>settled=r);p.doc.querySelector('main').setAttribute('class','busy');p.doc.querySelector('main').textContent='Updated';await settle();assert.equal(settled,null);actor.didDestroy();await settle();assert.equal(settled.changed,false);}
+ finally{p.w.close();}
+});
+for(const method of ['message','destroy'])test('generated actor '+method+' disarms a pending page watch',async()=>{
+ const p=themedPage(),Actor=generatedActor(),actor=new Actor();actor.document=p.doc;
+ try{const pending=watch(actor,p.doc,'watch-1');assert.equal(p.media.listeners.size,1);
+  if(method==='message')actor.receiveMessage({name:'SAT:Cancel',data:{operationId:'watch-1'}});else actor.didDestroy();
+  const result=await pending;assert.deepEqual({...result},{changed:false,reason:'cancelled'});assert.equal(p.media.listeners.size,0);
+  p.doc.body.className='dark';await settle();assert.equal(actor.operations.size,0);}
+ finally{p.w.close();}
+});

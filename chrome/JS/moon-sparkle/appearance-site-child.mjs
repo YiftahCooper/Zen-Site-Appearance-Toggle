@@ -45,12 +45,56 @@ function readPageAppearance(doc){
   const theme=votes.light>=7?'light':votes.dark>=7?'dark':null;
   return theme?{theme,reason:'palette'}:uncertain('mixed-or-complex');
 }
+/* Wait, without reading page content, for a cheap sign that the website may
+   have switched its own theme: an attribute change on <html> or <body> (no
+   subtree), a replaced <body>, a prefers-color-scheme change or load
+   completion. Resolves once, after a quiet period (bounded by maxWait), so the
+   parent can take a fresh sample; resolves {changed:false} when cancelled. */
+function watchPageAppearance(doc,{isCancelled,onCancel,quiet=250,maxWait=2000}={}){
+  const win=doc.defaultView,root=doc.documentElement;
+  const clamp=(value,low,high,fallback)=>Number.isFinite(value)?Math.min(high,Math.max(low,value)):fallback;
+  quiet=clamp(quiet,10,2000,250);maxWait=clamp(maxWait,quiet,10000,2000);
+  return new Promise(resolve=>{
+    if(!win||!root)return resolve({changed:false,reason:'unavailable'});
+    let done=false,quietTimer=null,maxTimer=null,observer=null,media=null,body=null;
+    function finish(changed,reason){
+      if(done)return;done=true;
+      try{observer?.disconnect();}catch{}
+      try{media?.removeEventListener('change',noteChange);}catch{}
+      try{win.removeEventListener('load',noteChange);}catch{}
+      if(quietTimer!==null)win.clearTimeout(quietTimer);if(maxTimer!==null)win.clearTimeout(maxTimer);
+      resolve({changed,reason});
+    }
+    function noteChange(){
+      if(done)return;
+      if(isCancelled?.())return finish(false,'cancelled');
+      if(doc.body&&doc.body!==body){body=doc.body;observer.observe(body,{attributes:true});}
+      if(quietTimer!==null)win.clearTimeout(quietTimer);
+      quietTimer=win.setTimeout(()=>finish(true,'changed'),quiet);
+      if(maxTimer===null)maxTimer=win.setTimeout(()=>finish(true,'changed'),maxWait);
+    }
+    onCancel?.(()=>finish(false,'cancelled'));
+    if(isCancelled?.())return finish(false,'cancelled');
+    try{
+      observer=new win.MutationObserver(noteChange);
+      observer.observe(root,{attributes:true,childList:true});
+      body=doc.body;if(body)observer.observe(body,{attributes:true});
+      media=win.matchMedia?.('(prefers-color-scheme: dark)')||null;
+      media?.addEventListener('change',noteChange);
+      if(doc.readyState!=='complete')win.addEventListener('load',noteChange,{once:true});
+    }catch{finish(false,'unavailable');}
+  });
+}
 /* Narrow website-owned controls. This source is embedded in the child actor. */
 async function siteAppearanceAction(doc,request){
   const url=new URL(doc.location.href),win=doc.defaultView;
   if(request?.operation==='page-appearance'){
     if(request.isCancelled?.())throw Error('Page appearance read cancelled');
     return ['http:','https:'].includes(url.protocol)?readPageAppearance(doc):{theme:null,reason:'unavailable'};
+  }
+  if(request?.operation==='watch-appearance'){
+    if(!['http:','https:'].includes(url.protocol))return {changed:false,reason:'unavailable'};
+    return watchPageAppearance(doc,request);
   }
   if(url.protocol!=='https:'||url.port||!['gemini.google.com','www.google.com','google.com','images.google.com'].includes(url.hostname))throw Error('Unsupported website setup');
   if(!['inspect','set','appearance','device-report','capture','restore'].includes(request?.operation))throw Error('Unsupported setup operation');
@@ -203,18 +247,20 @@ export class SatSiteAppearanceChild extends JSWindowActorChild {
   receiveMessage(message){
     const id=message.data?.operationId;
     if(message.name==='SAT:Cancel'){
-      const token=this.operations.get(id);if(token)token.cancelled=true;
+      const token=this.operations.get(id);if(token){token.cancelled=true;token.abort?.();}
       return;
     }
     if(this.destroyed)throw Error('Website theme operation cancelled');
     if(message.name!=='SAT:Theme'||this.document.location.href!==message.data?.expectedHref)throw Error('Website changed before theme operation');
     if(typeof id!=='string'||!id||this.operations.has(id))throw Error('Invalid website theme operation identity');
-    const token={cancelled:false};this.operations.set(id,token);
-    return siteAppearanceAction(this.document,{...message.data,isCancelled:()=>token.cancelled}).finally(()=>this.operations.delete(id));
+    // A long-lived page watch registers abort so cancellation and actor
+    // destruction disconnect its observers immediately.
+    const token={cancelled:false,abort:null};this.operations.set(id,token);
+    return siteAppearanceAction(this.document,{...message.data,isCancelled:()=>token.cancelled,onCancel:abort=>{token.abort=abort;}}).finally(()=>this.operations.delete(id));
   }
   didDestroy(){
     this.destroyed=true;
-    for(const token of this.operations.values())token.cancelled=true;
+    for(const token of this.operations.values()){token.cancelled=true;token.abort?.();}
     this.operations.clear();
   }
 }

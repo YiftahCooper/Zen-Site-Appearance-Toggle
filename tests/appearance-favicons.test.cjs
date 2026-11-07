@@ -67,3 +67,14 @@ test('transfer to a window without a running adapter safely restores sender base
 test('reenabling after all runtimes stop captures the current external filter as a fresh baseline',()=>{
  const s=setup();s.t.iconImage.style.setProperty('filter','sepia(0.5)','');s.flush();s.api.stop();const api=startAppearanceFavicons(s.win);assert.equal(s.t.iconImage.style.getPropertyValue('filter'),'brightness(0) invert(1)');api.stop();assert.equal(s.t.iconImage.style.getPropertyValue('filter'),'sepia(0.5)');assert.equal(s.t.iconImage.style.getPropertyPriority('filter'),'');
 });
+test('title, progress and subframe notifications do not rescan favicons; icon changes still do',()=>{
+ const s=setup();try{s.flush();
+  const queued=[];s.win.queueMicrotask=f=>queued.push(f);
+  const fire=detail=>{for(const f of s.win.gBrowser.tabContainer.events.get('TabAttrModified'))f({type:'TabAttrModified',detail});};
+  fire({changed:['label']});fire({changed:['progress','soundplaying']});
+  for(const listener of s.progress)listener.onLocationChange({},{isTopLevel:false});
+  assert.equal(queued.length,0);
+  fire({changed:['label','image']});assert.equal(queued.length,1);queued.shift()();
+  for(const listener of s.progress)listener.onLocationChange({},{isTopLevel:true});assert.equal(queued.length,1);
+ }finally{s.api.stop();}
+});

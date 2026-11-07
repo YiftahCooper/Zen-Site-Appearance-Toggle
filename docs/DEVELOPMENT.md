@@ -6,8 +6,10 @@ verification results. Browser profiles, cookies, local captures, recordings and
 old build directories are not prerequisites. Do not copy a user's browser
 profile to reproduce a bug.
 
-The runtime remains version 1.3.2. The development consolidation on 29 October
-2026 did not change the installed mod scripts. Native results in the release
+The runtime is version 1.3.3, which made tab notifications update only the
+affected tab and replaced the 750 ms page poll with event-driven sampling. The
+development consolidation on 29 October 2026 did not change the installed mod
+scripts. Native results in the release
 reports describe the recorded versions; they are not claims that the current
 browser has been retested or that an everyday profile has accepted the mod.
 
@@ -62,7 +64,7 @@ node --test tests/*.test.cjs
 python -B -m unittest discover -s tests -p 'test_*.py'
 ```
 
-Expect generated-file parity, 208 passing JavaScript checks and 10 passing
+Expect generated-file parity, 226 passing JavaScript checks and 10 passing
 Python helper checks on this revision. They normally finish within seconds.
 Stop on a failure and inspect it before rerunning. These commands do not change
 the mod; after a source edit, run `node tools/build.cjs` deliberately and review
@@ -148,6 +150,13 @@ and native integration runs were not rerun.
 - [1.3.2 detector and its limits](../verification/page-appearance-1.3.2.md)
 - [19 historical native detector checks](../verification/page-appearance-1.3.2-native.json)
 - [BBC Sport observation and its proof boundary](../verification/2026-10-04-bbc-sport.md)
+- 1.3.3 event scoping and event-driven sampling have deterministic coverage
+  only (`tests/event-scope.test.cjs`, the page-watch tests in
+  `tests/site-cancellation.test.cjs` and `tests/toolbar-page-appearance.test.cjs`).
+  No native Zen run has yet confirmed the child page watcher, real
+  `TabAttrModified` details or progress flags; rerun
+  `tests/native_page_appearance.py` and `tests/native_appearance.py` before
+  treating them as natively verified.
 
 The native results are privacy-reduced check summaries, not raw browser dumps.
 Search and Images passed in separate historical fixtures; signed-in account

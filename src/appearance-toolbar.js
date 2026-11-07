@@ -3,7 +3,17 @@ function startAppearanceToolbar(win){
   win.__zenSiteAppearanceToggle?.stop?.();
   let menu=null,controller,busy=false,alive=true;
   const favicons=startAppearanceFavicons(win),siteSetup=startSiteSetup(win);
-  let pageSample=null,pagePending=null,pageTimer=null;
+  // Page sampling is event driven. A sample is taken when the selected
+  // tab, its document, its URL or the requested appearance changes, with a few
+  // settle samples while a new page finishes painting. While a sampled page
+  // stays selected, a child watcher on <html>/<body> attributes and the
+  // colour-scheme media query reports the website's own theme switches. A slow
+  // fallback covers repaints that touch neither, only in an active visible window.
+  const SETTLE_NEW_DOCUMENT=[300,1500,5000],SETTLE_NAVIGATION=[300,1500],SETTLE_SWITCH=[300],SETTLE_REQUEST=[300,1500],SETTLE_WATCH=[1500];
+  const FALLBACK_MS=10000,LOADING_RECHECK_MS=1000;
+  let pageSample=null,pagePending=null,pageAgain=false,pageTimer=null,pageSeen=null,pageWatch=null,loadingTimer=null;
+  const pageDocuments=new WeakMap(),settleTimers=new Set();
+  let windowActive=typeof Services==='undefined'||!Services.focus?true:Services.focus.activeWindow===win;
   function pageTarget(){
     const tab=win.gBrowser.selectedTab;
     if(!tab||!tab.isConnected||tab.closing||tab.hasAttribute('pending')||doc.hidden||typeof siteSetup.observeAppearance!=='function')return null;
@@ -13,24 +23,65 @@ function startAppearanceToolbar(win){
     return document?{tab,document,href,requestedDark:controller.effectiveDark()}:null;
   }
   const samePage=(a,b)=>!!a&&!!b&&a.tab===b.tab&&a.document===b.document&&a.href===b.href&&a.requestedDark===b.requestedDark;
-  function visibleTheme(){
-    const target=pageTarget();
+  const sameDocument=(a,b)=>!!a&&!!b&&a.tab===b.tab&&a.document===b.document;
+  function settle(delays){
+    for(const ms of delays){
+      const id=win.setTimeout(()=>{settleTimers.delete(id);samplePage(true);},ms);settleTimers.add(id);
+    }
+  }
+  function clearSettle(){for(const id of settleTimers)win.clearTimeout(id);settleTimers.clear();}
+  // Classify a change of the sampled page and schedule its settle samples.
+  function notePage(target){
+    const known=pageDocuments.get(target.tab);
+    const fresh=!known||known.document!==target.document,navigated=!fresh&&known.href!==target.href,switched=pageSeen?.tab!==target.tab;
+    if(fresh||navigated||switched){clearSettle();settle(fresh?SETTLE_NEW_DOCUMENT:navigated?SETTLE_NAVIGATION:SETTLE_SWITCH);}
+    else if(pageSeen.requestedDark!==target.requestedDark)settle(SETTLE_REQUEST);
+    pageDocuments.set(target.tab,{document:target.document,href:target.href});pageSeen=target;
+  }
+  function cancelWatch(){if(pageWatch){const watch=pageWatch;pageWatch=null;try{watch.cancel();}catch{}}}
+  function armWatch(target){
+    if(!alive||typeof siteSetup.watchAppearance!=='function'||sameDocument(pageWatch,target))return;
+    cancelWatch();
+    let watch;try{watch=siteSetup.watchAppearance(target.tab);}catch{return;}
+    if(!watch?.promise)return;
+    const entry={tab:target.tab,document:target.document,cancel:watch.cancel};pageWatch=entry;
+    watch.promise.then(result=>{
+      if(pageWatch!==entry)return;
+      pageWatch=null;
+      if(alive&&result?.changed){samplePage(true);settle(SETTLE_WATCH);}
+    },()=>{if(pageWatch===entry)pageWatch=null;});
+  }
+  function visibleTheme(target=pageTarget()){
     return samePage(pageSample,target)?pageSample.theme:null;
   }
-  function samplePage(force=false){
+  function samplePage(force=false,target=pageTarget()){
     if(!alive||!controller||busy)return;
-    const target=pageTarget();if(!target){pageSample=null;return;}
-    if(pagePending||!force&&samePage(pageSample,target))return;
+    if(!target){pageSample=null;return;}
+    if(pagePending){if(force)pageAgain=true;return;}
+    if(!force&&samePage(pageSample,target))return;
+    pageAgain=false;
     const pending={target};pagePending=pending;
     Promise.resolve().then(()=>siteSetup.observeAppearance(target.tab)).then(sample=>{
-      if(alive&&samePage(target,pageTarget()))pageSample={...target,theme:['light','dark'].includes(sample?.theme)?sample.theme:null};
+      if(alive&&samePage(target,pageTarget())){
+        pageSample={...target,theme:['light','dark'].includes(sample?.theme)?sample.theme:null};
+        armWatch(target);
+      }
     },()=>{
       if(alive&&samePage(target,pageTarget()))pageSample={...target,theme:null};
     }).finally(()=>{
       if(pagePending===pending)pagePending=null;
-      if(alive)refresh();
+      if(!alive)return;
+      if(pageAgain){pageAgain=false;samplePage(true);}
+      refresh();
     });
   }
+  function fallbackSample(){if(alive&&windowActive&&!doc.hidden)samplePage(true);}
+  // Returning to a window takes one fresh sample; refresh then sees it pending.
+  function activated(event){
+    windowActive=event.type!=='deactivate';
+    if(windowActive&&!doc.hidden){samplePage(true);refresh();}
+  }
+  function visibility(){if(!doc.hidden){samplePage(true);refresh();}}
   const googleTouched=new WeakMap();let googleTimer=null;
   const scopeNames={workspace:'this workspace',site:'this website','workspace-site':'this website in this workspace'};
   function googleTarget(tab){
@@ -98,23 +149,38 @@ function startAppearanceToolbar(win){
       finally{busy=false;if(alive)refresh();}
     },0);
   }
+  // While the selected page is still loading it cannot be sampled. Recheck
+  // cheaply (no page query) in case its completion notification preceded the
+  // loading flag update.
+  function recheckLoading(target){
+    if(target||loadingTimer!==null||doc.hidden||!alive)return;
+    const tab=win.gBrowser.selectedTab;
+    if(!tab||tab.closing||tab.hasAttribute('pending')||!tab.linkedBrowser?.webProgress?.isLoadingDocument)return;
+    loadingTimer=win.setTimeout(()=>{loadingTimer=null;refresh();},LOADING_RECHECK_MS);
+  }
+  // Mutation records wake other observers even for an unchanged value.
+  const setAttribute=(element,name,value)=>{if(element.getAttribute(name)!==value)element.setAttribute(name,value);};
   function refresh(){
     if(!alive||!controller)return;
     scheduleGoogle();
-    samplePage();
+    const target=pageTarget();
+    if(target)notePage(target);
+    if(!sameDocument(pageWatch,target))cancelWatch();
+    samplePage(false,target);
+    recheckLoading(target);
     const btn=doc.getElementById(ID);if(!btn)return;
     try{
-      const theme=visibleTheme(),requestedDark=controller.effectiveDark(),dark=theme?theme==='dark':requestedDark,ctx=controller.currentContext();
+      const theme=visibleTheme(target),requestedDark=controller.effectiveDark(),dark=theme?theme==='dark':requestedDark,ctx=controller.currentContext();
       const recovery=typeof siteSetup.pendingGoogleDraft?.(win.gBrowser.selectedTab)==='string'?' Right-click to copy the unsent Google search.':'';
       const detection=theme?(dark!==requestedDark?` (page remains ${dark?'Dark':'Light'}; ${requestedDark?'Dark':'Light'} requested)`:''):' (page theme not detected; using the requested appearance)';
       const text=busy?'Applying this website’s appearance…':win.__satError?'Appearance unavailable: '+win.__satError+recovery:`Switch ${scopeNames[ctx.scope]} to ${dark?'Light':'Dark'}${ctx.site?' — '+ctx.site.label:''}${detection}`;
-      btn.setAttribute('tooltiptext',text);btn.setAttribute('aria-label',text);
-      btn.setAttribute('data-sat-page-theme',theme||'unknown');
-      btn.disabled=busy;
+      setAttribute(btn,'tooltiptext',text);setAttribute(btn,'aria-label',text);
+      setAttribute(btn,'data-sat-page-theme',theme||'unknown');
+      if(btn.disabled!==busy)btn.disabled=busy;
       const light=SAT_VARIANT==='sun'?ORIG_SUN:SAT_VARIANT==='sparkle'?ORIG_SPARKLE:getLightSrc();
       const src=dark?(SAT_VARIANT==='sine'?getMoonSrc():ORIG_MOON):light;
-      const img=btn.querySelector('.toolbarbutton-icon');if(img)img.setAttribute('src',src);
-    }catch(e){btn.setAttribute('tooltiptext','SAT: '+e.message);}
+      const img=btn.querySelector('.toolbarbutton-icon');if(img)setAttribute(img,'src',src);
+    }catch(e){setAttribute(btn,'tooltiptext','SAT: '+e.message);}
   }
   controller=createController({environment:satEnvironment(win,refresh),policy:AppearancePolicy});
   function choose(value,toggling=false){
@@ -178,7 +244,10 @@ function startAppearanceToolbar(win){
     (doc.getElementById('mainPopupSet')||doc.documentElement).appendChild(menu);menu.openPopupAtScreen(event.screenX,event.screenY,true);
   }
   const api={controller,siteSetup,toggle,refresh,choose,get busy(){return busy;},stop(){
-    if(!alive)return;alive=false;if(googleTimer!==null){win.clearTimeout(googleTimer);googleTimer=null;}if(pageTimer!==null)win.clearInterval(pageTimer);pageSample=null;siteSetup.stop();favicons.stop();controller.stop();doc.removeEventListener('contextmenu',context,true);win.removeEventListener('unload',api.stop);
+    if(!alive)return;alive=false;if(googleTimer!==null){win.clearTimeout(googleTimer);googleTimer=null;}
+    if(pageTimer!==null)win.clearInterval(pageTimer);if(loadingTimer!==null)win.clearTimeout(loadingTimer);clearSettle();cancelWatch();pageSample=null;
+    win.removeEventListener('activate',activated);win.removeEventListener('deactivate',activated);doc.removeEventListener('visibilitychange',visibility);
+    siteSetup.stop();favicons.stop();controller.stop();doc.removeEventListener('contextmenu',context,true);win.removeEventListener('unload',api.stop);
     menu?.remove();if(win.__zenSiteAppearanceToggle===api)delete win.__zenSiteAppearanceToggle;
     const any=Array.from(CustomizableUI.windows).some(w=>w.__zenSiteAppearanceToggle);
     if(!any)CustomizableUI.destroyWidget(ID);
@@ -189,7 +258,8 @@ function startAppearanceToolbar(win){
     onCommand:event=>event.target.ownerDocument.defaultView.__zenSiteAppearanceToggle?.toggle()});
   doc.addEventListener('contextmenu',context,true);win.addEventListener('unload',api.stop,{once:true});
   win.addUnloadListener?.(api.stop);
-  controller.start();pageTimer=win.setInterval(()=>samplePage(true),750);return api;
+  win.addEventListener('activate',activated);win.addEventListener('deactivate',activated);doc.addEventListener('visibilitychange',visibility);
+  controller.start();pageTimer=win.setInterval(fallbackSample,FALLBACK_MS);return api;
 }
 if(document.readyState==='complete')startAppearanceToolbar(window);
 else window.addEventListener('load',()=>startAppearanceToolbar(window),{once:true});

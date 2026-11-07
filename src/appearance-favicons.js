@@ -79,23 +79,31 @@ function startAppearanceFavicons(win) {
     for(const [image,state]of owned)if(!present.has(image))release(image,state);
   }
   function schedule(){if(!running||scheduled)return;scheduled=true;win.queueMicrotask(()=>{scheduled=false;refresh();});}
+  // Title, progress and media changes cannot change an icon or its sidebar;
+  // icon, URL and container changes still arrive through the other signals.
+  const ignoredAttributes=new Set(['label','progress','soundplaying','muted','activemedia-blocked','pictureinpicture','attention','titlechanged']);
+  function tabEvent(event){
+    const changed=event?.type==='TabAttrModified'?event.detail?.changed:null;
+    if(Array.isArray(changed)&&changed.length&&changed.every(name=>ignoredAttributes.has(name)))return;
+    schedule();
+  }
   const observer=new win.MutationObserver(schedule);
   observer.observe(win.gBrowser.tabContainer,{subtree:true,childList:true,attributes:true,attributeFilter:['image','src','style','zen-essential']});
   const themeObserver=new win.MutationObserver(schedule);
   themeObserver.observe(win.document.documentElement,{attributes:true,attributeFilter:['style','class','lwtheme','lwtheme-brighttext']});
   const events=['ZenTabIconChanged','TabAttrModified','TabSelect','TabOpen','TabClose','TabMove','SSTabRestored','TabBrowserInserted','TabPinned','TabUnpinned'];
-  for(const event of events)win.gBrowser.tabContainer.addEventListener(event,schedule);
+  for(const event of events)win.gBrowser.tabContainer.addEventListener(event,tabEvent);
   const media=win.matchMedia('(prefers-color-scheme:dark)');media.addEventListener('change',schedule);
   const services=win.Services||(typeof Services!=='undefined'?Services:null);
   services?.prefs.addObserver('browser.theme.',schedule);services?.prefs.addObserver('ui.systemUsesDarkTheme',schedule);
   services?.obs.addObserver(schedule,'look-and-feel-changed');
-  const progress={onLocationChange:schedule};
+  const progress={onLocationChange(browser,webProgress){if(webProgress?.isTopLevel!==false)schedule();}};
   // Zen calls these listeners only for methods they implement.
   if(win.ChromeUtils?.generateQI)progress.QueryInterface=win.ChromeUtils.generateQI(['nsIWebProgressListener','nsISupportsWeakReference']);
   win.gBrowser.addTabsProgressListener(progress);
   const api={refresh,stop(){
     if(!running)return;running=false;observer.disconnect();themeObserver.disconnect();
-    for(const event of events)win.gBrowser.tabContainer.removeEventListener(event,schedule);
+    for(const event of events)win.gBrowser.tabContainer.removeEventListener(event,tabEvent);
     media.removeEventListener('change',schedule);
     services?.prefs.removeObserver('browser.theme.',schedule);services?.prefs.removeObserver('ui.systemUsesDarkTheme',schedule);
     services?.obs.removeObserver(schedule,'look-and-feel-changed');win.gBrowser.removeTabsProgressListener(progress);

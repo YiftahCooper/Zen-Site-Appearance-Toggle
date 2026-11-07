@@ -34,7 +34,7 @@ function startSiteSetup(win){
     }
     // General pages receive only the read-only appearance operation. The child
     // keeps all website-setting operations behind the original service gates.
-    ChromeUtils.registerWindowActor(ACTOR,{child:{esModuleURI:uri+'?v=1.3.2'},matches:['http://*/*','https://*/*'],remoteTypes:['web'],safeForUntrustedWebProcess:true,allFrames:false});
+    ChromeUtils.registerWindowActor(ACTOR,{child:{esModuleURI:uri+'?v=1.3.3'},matches:['http://*/*','https://*/*'],remoteTypes:['web'],safeForUntrustedWebProcess:true,allFrames:false});
     registry.registered=true;
   }
   async function ready(tab,expected,previous=null){
@@ -110,6 +110,21 @@ function startSiteSetup(win){
       if(!current())throw Error('Page changed before appearance could be read');
       if(!sample||![null,'light','dark'].includes(sample.theme))return unavailable;
       return {theme:sample.theme,reason:typeof sample.reason==='string'?sample.reason:'unavailable'};
+    },
+    // Arm the child's cheap theme watcher for the selected document. The
+    // promise resolves once with {changed} when the website may have changed
+    // its own theme; it has no timeout because it is cancelled on navigation,
+    // tab change or stop, and the child disarms it when its document goes away.
+    watchAppearance(tab){
+      if(stopped)throw Error('Website setup stopped');
+      const wg=tab?.linkedBrowser?.browsingContext?.currentWindowGlobal;if(!wg)throw Error('Website is not loaded');
+      register();
+      const actor=wg.getActor(ACTOR),operationId=Services.uuid.generateUUID().toString()+':'+(++sequence);
+      let cancel;
+      const aborted=new Promise((_,reject)=>{cancel=message=>{try{actor.sendAsyncMessage('SAT:Cancel',{operationId});}catch{}reject(Error(message));};});
+      operations.add(cancel);
+      const promise=Promise.race([actor.sendQuery('SAT:Theme',{operation:'watch-appearance',expectedHref:wg.documentURI.spec,operationId}),aborted]).finally(()=>operations.delete(cancel));
+      return {document:wg,promise,cancel:()=>cancel('Page appearance watch cancelled')};
     },
     // A failed navigation may remove unsent input. Keep recovery in memory
     // only, accessible solely by the user's explicit copy command.

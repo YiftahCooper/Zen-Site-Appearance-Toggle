@@ -66,8 +66,13 @@ Readiness is independent of contrast so it cannot hide a rendering failure.
 Before 1.3.2 the icon described the requested mode, which could show Dark on a
 fixed-light site. The read-only detector now samples nine visible background
 points, composes transparent ancestors and requires seven agreeing clear
-Light/Dark samples. It checks the selected loaded page every 750 ms and obtains
-a fresh result for a click. Website-owned theme changes update the icon without
+Light/Dark samples. Since 1.3.3 it checks the selected loaded page when it is
+selected, loads or navigates (then after about 0.3, 1.5 and 5 seconds), when
+the requested appearance changes, when the window returns, and when the page
+changes its `<html>`/`<body>` attributes or colour-scheme media query. A theme
+switch that touches none of those is picked up by a 10-second check while the
+window is active and visible. (1.3.2 checked every 750 ms.) A click obtains a
+fresh result. Website-owned theme changes update the icon without
 saving a SAT choice. Results are tied to the tab/document/URL/request so stale
 answers cannot repaint another page's icon.
 

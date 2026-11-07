@@ -133,3 +133,13 @@ test('Google repaint preserves query filters and explicit account without adding
  const commands=f.calls.filter(c=>c.name==='SAT:Theme').map(c=>c.data.operation);assert.deepEqual(commands,['capture','appearance','restore']);assert.equal(f.calls.find(c=>c.data?.operation==='restore').data.snapshot.searchInput.value,'unsent fixture');
  }finally{f.api.stop();}
 });
+test('page watch transport arms one read-only watch and cancels it explicitly or on stop',async()=>{
+ const f=fixture();const t=f.tab('https://example.org/'),queries=[],messages=[];let finish;
+ t.linkedBrowser.browsingContext.currentWindowGlobal.getActor=()=>({sendQuery:(name,data)=>{queries.push({name,data});return new Promise(r=>finish=r);},sendAsyncMessage:(name,data)=>messages.push({name,data})});
+ const first=f.api.watchAppearance(t);assert.equal(first.document,t.linkedBrowser.browsingContext.currentWindowGlobal);
+ assert.deepEqual(queries.map(q=>[q.name,q.data.operation,q.data.expectedHref]),[['SAT:Theme','watch-appearance','https://example.org/']]);
+ finish({changed:true,reason:'changed'});assert.deepEqual(await first.promise,{changed:true,reason:'changed'});
+ const second=f.api.watchAppearance(t);second.cancel();await assert.rejects(second.promise,/cancelled/);assert.deepEqual(messages.map(m=>[m.name,m.data.operationId]),[['SAT:Cancel',queries[1].data.operationId]]);
+ const third=f.api.watchAppearance(t);f.api.stop();await assert.rejects(third.promise,/stopped/);assert.equal(messages.length,2);
+ assert.throws(()=>f.api.watchAppearance(t),/stopped/);assert.equal(f.calls.length,0);
+});

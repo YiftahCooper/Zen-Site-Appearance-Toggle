@@ -2,7 +2,9 @@
 
 A toolbar button that remembers whether you want each website to use Light or Dark. Share a website's choice across workspaces, or remember a different choice for that website in each workspace.
 
-**Version 1.3.2:** the toolbar icon and next-click action follow the selected page's detected appearance, including changes made with the website's own theme controls. See [the verification notes](verification/page-appearance-1.3.2.md).
+**Version 1.3.3:** less background work with many open tabs. A tab's title, icon, progress or sound changes no longer make SAT re-check every tab; only the tab whose website, workspace or loaded state changed is updated, and saved choices are read once per change. The selected page is no longer sampled every 750 ms: it is checked when it is selected, loads or navigates (with a few follow-up checks while it settles), when the requested appearance changes, when its window returns, and when the website changes attributes on its `<html>` or `<body>` element or its colour-scheme media query. A slow 10-second check remains for an active, visible window. Behavior and saved settings are unchanged.
+
+Version 1.3.2: the toolbar icon and next-click action follow the selected page's detected appearance, including changes made with the website's own theme controls. See [the verification notes](verification/page-appearance-1.3.2.md).
 
 Version 1.3.1 made Per site within each workspace the default in Zen; explicit mode selections are preserved. See the [follow-up verification](verification/default-scope-1.3.1.md).
 
@@ -20,7 +22,7 @@ Right-click the button for four choices:
 
 The sparkle or sun represents **Light**; the moon represents **Dark**. System is a separate right-click choice. The tooltip describes what the next click will do.
 
-SAT samples the visible surfaces of the selected, loaded web page. The icon follows the detected Light/Dark appearance even when it differs from the browser request or a saved SAT choice. Changes made using a website's own theme controls are checked every 750 ms; a toolbar click also reads the current page before choosing the opposite appearance. Detection does not save a choice or change the website's own setting.
+SAT samples the visible surfaces of the selected, loaded web page. The icon follows the detected Light/Dark appearance even when it differs from the browser request or a saved SAT choice. Changes made using a website's own theme controls are noticed when the site updates its `<html>` or `<body>` attributes or colour-scheme media query, and otherwise within about 10 seconds while the window is active and visible; a toolbar click also reads the current page before choosing the opposite appearance. Detection does not save a choice or change the website's own setting.
 
 Mixed colours, image backgrounds and other complex surfaces can make detection uncertain. In that case the icon falls back to the requested appearance and the tooltip says that the page theme was not detected. If a website stays Light despite a Dark request, a detected light icon continues to describe the visible page; the tooltip explains the difference. The selected page alone is sampled, and hidden windows and unloaded tabs are skipped.
 
