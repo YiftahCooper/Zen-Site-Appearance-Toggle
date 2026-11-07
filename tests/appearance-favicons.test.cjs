@@ -78,3 +78,38 @@ test('title, progress and subframe notifications do not rescan favicons; icon ch
   for(const listener of s.progress)listener.onLocationChange({},{isTopLevel:true});assert.equal(queued.length,1);
  }finally{s.api.stop();}
 });
+test('tab-strip mutations refresh only the owning tab; label text changes do nothing',()=>{
+ const s=setup();try{
+  const other=s.tab('https://github.com/other/repo');s.flush();
+  let reads=0;const spec=other.linkedBrowser.currentURI.spec;Object.defineProperty(other.linkedBrowser,'currentURI',{get(){reads++;return {spec};}});
+  const queued=[];s.win.queueMicrotask=f=>queued.push(f);const observer=s.observers[0];
+  const label={nodeType:1,closest:()=>s.t,matches:()=>false,querySelector:()=>null};
+  observer.f([{type:'childList',target:label,addedNodes:[{nodeType:3}],removedNodes:[{nodeType:3}]}]);
+  assert.equal(queued.length,0,'title text churn schedules nothing');
+  s.t.iconImage.closest=()=>s.t;
+  observer.f([{type:'attributes',attributeName:'src',target:s.t.iconImage}]);
+  assert.equal(queued.length,1);queued.shift()();
+  assert.equal(reads,0,'another tab is not re-evaluated for one tab\'s icon change');
+  assert.equal(s.t.iconImage.style.getPropertyValue('filter'),'brightness(0) invert(1)');
+  observer.f([{type:'childList',target:s.win.gBrowser.tabContainer,addedNodes:[{nodeType:1,linkedBrowser:{}}],removedNodes:[]}]);
+  assert.equal(queued.length,1);queued.shift()();
+  assert.ok(reads>0,'adding a tab runs the full pass');
+ }finally{s.api.stop();}
+});
+test('a tab-targeted event or top-level navigation refreshes that tab alone',()=>{
+ const s=setup();try{
+  const other=s.tab('https://github.com/other/repo');s.flush();
+  let reads=0;const spec=other.linkedBrowser.currentURI.spec;Object.defineProperty(other.linkedBrowser,'currentURI',{get(){reads++;return {spec};}});
+  const queued=[];s.win.queueMicrotask=f=>queued.push(f);
+  for(const f of s.win.gBrowser.tabContainer.events.get('TabAttrModified'))f({type:'TabAttrModified',target:s.t,detail:{changed:['image']}});
+  s.win.gBrowser.getTabForBrowser=b=>b===s.t.linkedBrowser?s.t:null;
+  for(const listener of s.progress)listener.onLocationChange(s.t.linkedBrowser,{isTopLevel:true});
+  assert.equal(queued.length,1,'coalesced');queued.shift()();
+  assert.equal(reads,0);
+  s.t.linkedBrowser.currentURI.spec='https://example.com/';
+  for(const listener of s.progress)listener.onLocationChange(s.t.linkedBrowser,{isTopLevel:true});queued.shift()();
+  assert.equal(s.t.iconImage.style.getPropertyValue('filter'),'opacity(0.8)','leaving GitHub restores the baseline');
+  for(const f of s.win.gBrowser.tabContainer.events.get('TabClose'))f({type:'TabClose',target:other});queued.shift()();
+  assert.ok(reads>0,'closing a tab runs the full pass');
+ }finally{s.api.stop();}
+});

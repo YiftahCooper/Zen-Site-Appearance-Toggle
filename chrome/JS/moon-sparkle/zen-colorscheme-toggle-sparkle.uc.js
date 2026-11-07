@@ -633,37 +633,91 @@ function startAppearanceFavicons(win) {
     }
     return media.matches;
   }
+  function tabImage(tab){return tab.iconImage||tab.querySelector?.('.tab-icon-image');}
+  // One tab's icon. Returns its image (or null) so a full pass can prune.
+  function refreshTab(tab) {
+    const image=tabImage(tab);if(!image)return null;
+    let state=registry.states.get(image);
+    if(state&&!matches(image,state)){
+      registry.yielded.add(image);registry.states.delete(image);clearMarker(image,state);owned.delete(image);state=null;
+    }
+    if(state){state.owner=owner;owned.set(image,state);}
+    if(!stockIcon(tab,image)){if(state){restore(image,state);owned.delete(image);}return image;}
+    if(registry.yielded.has(image))return image;
+    if(!state){state={before:filter(image),last:filter(image),owner};registry.states.set(image,state);owned.set(image,state);}
+    const dark=darkSidebar(image),value=dark?'brightness(0) invert(1)':'brightness(0)';
+    if(image.style.getPropertyValue('filter')!==value||image.style.getPropertyPriority('filter')!=='important')image.style.setProperty('filter',value,'important');
+    state.last=filter(image);state.marker=dark?'dark':'light';
+    if(image.getAttribute(marker)!==state.marker)image.setAttribute(marker,state.marker);
+    return image;
+  }
+  // Full pass: every tab, then release images whose tab left this window.
   function refresh() {
     if(!running)return;
     const present=new Set();
-    for(const tab of win.gBrowser.tabs) {
-      const image=tab.iconImage||tab.querySelector?.('.tab-icon-image');if(!image)continue;
-      present.add(image);
-      let state=registry.states.get(image);
-      if(state&&!matches(image,state)){
-        registry.yielded.add(image);registry.states.delete(image);clearMarker(image,state);owned.delete(image);state=null;
-      }
-      if(state){state.owner=owner;owned.set(image,state);}
-      if(!stockIcon(tab,image)){if(state){restore(image,state);owned.delete(image);}continue;}
-      if(registry.yielded.has(image))continue;
-      if(!state){state={before:filter(image),last:filter(image),owner};registry.states.set(image,state);owned.set(image,state);}
-      const dark=darkSidebar(image),value=dark?'brightness(0) invert(1)':'brightness(0)';
-      if(image.style.getPropertyValue('filter')!==value||image.style.getPropertyPriority('filter')!=='important')image.style.setProperty('filter',value,'important');
-      state.last=filter(image);state.marker=dark?'dark':'light';
-      if(image.getAttribute(marker)!==state.marker)image.setAttribute(marker,state.marker);
-    }
+    for(const tab of win.gBrowser.tabs){const image=refreshTab(tab);if(image)present.add(image);}
     for(const [image,state]of owned)if(!present.has(image))release(image,state);
   }
-  function schedule(){if(!running||scheduled)return;scheduled=true;win.queueMicrotask(()=>{scheduled=false;refresh();});}
+  // Work is coalesced into one microtask. A change that belongs to one tab
+  // refreshes only that tab; theme, preference and structural changes (or a
+  // signal that cannot be attributed to a tab) run the full pass.
+  let pendingFull=false;const pendingTabs=new Set();
+  function flush() {
+    scheduled=false;
+    if(!running)return;
+    if(pendingFull){pendingFull=false;pendingTabs.clear();refresh();return;}
+    const tabs=[...pendingTabs];pendingTabs.clear();
+    for(const tab of tabs)if(!tab.closing&&tab.ownerDocument?.defaultView===win)refreshTab(tab);
+  }
+  function schedule(tab){
+    if(!running)return;
+    if(isTab(tab))pendingTabs.add(tab);else pendingFull=true;
+    if(scheduled)return;scheduled=true;win.queueMicrotask(flush);
+  }
+  function scheduleAll(){schedule(null);}
+  // `in` reads no getter: probing must not touch a tab's browser.
+  function isTab(node){return Boolean(node)&&typeof node==='object'&&'linkedBrowser' in node;}
+  function owningTab(node){
+    if(!node||typeof node!=='object')return null;
+    if(isTab(node))return node;
+    return node.closest?.('tab')||null;
+  }
   // Title, progress and media changes cannot change an icon or its sidebar;
   // icon, URL and container changes still arrive through the other signals.
   const ignoredAttributes=new Set(['label','progress','soundplaying','muted','activemedia-blocked','pictureinpicture','attention','titlechanged']);
+  // Opening, closing and moving tabs can add or release an icon element.
+  const structuralEvents=new Set(['TabOpen','TabClose','TabMove','TabBrowserInserted']);
   function tabEvent(event){
     const changed=event?.type==='TabAttrModified'?event.detail?.changed:null;
     if(Array.isArray(changed)&&changed.length&&changed.every(name=>ignoredAttributes.has(name)))return;
-    schedule();
+    if(structuralEvents.has(event?.type))return scheduleAll();
+    schedule(owningTab(event?.target));
   }
-  const observer=new win.MutationObserver(schedule);
+  // A tab element, or a subtree holding one or an icon image, changes what a
+  // full pass sees. Label text and other decorations do not.
+  function structural(node){
+    if(node?.nodeType!==1)return false;
+    return Boolean(isTab(node)||node.matches?.('tab, .tab-icon-image')||node.querySelector?.('tab, .tab-icon-image'));
+  }
+  function onMutations(records){
+    if(!records?.length)return scheduleAll();
+    for(const record of records){
+      if(record.type==='attributes'){
+        const tab=owningTab(record.target);
+        if(tab)schedule(tab);
+        continue;
+      }
+      let relevant=false;
+      for(const node of record.addedNodes||[])if(structural(node)){relevant=true;break;}
+      if(!relevant)for(const node of record.removedNodes||[])if(structural(node)){relevant=true;break;}
+      if(!relevant)continue;
+      const tab=owningTab(record.target);
+      // Inside one tab (its icon stack was rebuilt): that tab. Otherwise tabs
+      // were added or removed: full pass, which also releases departed icons.
+      if(tab)schedule(tab);else scheduleAll();
+    }
+  }
+  const observer=new win.MutationObserver(onMutations);
   observer.observe(win.gBrowser.tabContainer,{subtree:true,childList:true,attributes:true,attributeFilter:['image','src','style','zen-essential']});
   const themeObserver=new win.MutationObserver(schedule);
   themeObserver.observe(win.document.documentElement,{attributes:true,attributeFilter:['style','class','lwtheme','lwtheme-brighttext']});
@@ -673,7 +727,7 @@ function startAppearanceFavicons(win) {
   const services=win.Services||(typeof Services!=='undefined'?Services:null);
   services?.prefs.addObserver('browser.theme.',schedule);services?.prefs.addObserver('ui.systemUsesDarkTheme',schedule);
   services?.obs.addObserver(schedule,'look-and-feel-changed');
-  const progress={onLocationChange(browser,webProgress){if(webProgress?.isTopLevel!==false)schedule();}};
+  const progress={onLocationChange(browser,webProgress){if(webProgress?.isTopLevel!==false)schedule(win.gBrowser.getTabForBrowser?.(browser)||null);}};
   // Zen calls these listeners only for methods they implement.
   if(win.ChromeUtils?.generateQI)progress.QueryInterface=win.ChromeUtils.generateQI(['nsIWebProgressListener','nsISupportsWeakReference']);
   win.gBrowser.addTabsProgressListener(progress);
