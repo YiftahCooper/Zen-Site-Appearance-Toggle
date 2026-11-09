@@ -2,7 +2,9 @@
 
 A toolbar button that remembers whether you want each website to use Light or Dark. Share a website's choice across workspaces, or remember a different choice for that website in each workspace.
 
-**Version 1.3.3:** less background work with many open tabs. A tab's title, icon, progress or sound changes no longer make SAT re-check every tab; only the tab whose website, workspace or loaded state changed is updated, and saved choices are read once per change. The selected page is no longer sampled every 750 ms: it is checked when it is selected, loads or navigates (with a few follow-up checks while it settles), when the requested appearance changes, when its window returns, and when the website changes attributes on its `<html>` or `<body>` element or its colour-scheme media query. A slow 10-second check remains for an active, visible window. The GitHub favicon contrast fix now re-checks only the tab whose icon, address or tab structure changed, instead of every tab on any tab-strip change. Behavior and saved settings are unchanged.
+**Version 1.3.4:** the Original moon, sparkle and sun icons follow the toolbar's icon colour again. On Zen 1.24 (Gecko 159) they had turned black on every theme, because the browser no longer passes the toolbar colour to icons embedded in the script. They now ship as files in `icons/` next to each script. Zen icon set, overrides and settings are unchanged.
+
+Version 1.3.3: less background work with many open tabs. A tab's title, icon, progress or sound changes no longer make SAT re-check every tab; only the tab whose website, workspace or loaded state changed is updated, and saved choices are read once per change. The selected page is no longer sampled every 750 ms: it is checked when it is selected, loads or navigates (with a few follow-up checks while it settles), when the requested appearance changes, when its window returns, and when the website changes attributes on its `<html>` or `<body>` element or its colour-scheme media query. A slow 10-second check remains for an active, visible window. The GitHub favicon contrast fix now re-checks only the tab whose icon, address or tab structure changed, instead of every tab on any tab-strip change. Behavior and saved settings are unchanged.
 
 Version 1.3.2: the toolbar icon and next-click action follow the selected page's detected appearance, including changes made with the website's own theme controls. See [the verification notes](verification/page-appearance-1.3.2.md).
 
@@ -92,7 +94,7 @@ For an existing [fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig) ins
 - [Sparkle](chrome/JS/moon-sparkle/zen-colorscheme-toggle-sparkle.uc.js)
 - [Sun](chrome/JS/moon-sun/zen-colorscheme-toggle-sun.uc.js)
 
-Copy the selected variant **and its adjacent `appearance-site-child.mjs`** into the same loader folder, and retain the existing [button CSS](chrome/userChrome.css). Keep the helper's plain `.mjs` filename: `.sys.mjs` files are automatically imported as background modules by fx-autoconfig. The full Configure editor requires Sine. The standalone variants read the same preferences and provide the same toolbar menu; native fx-autoconfig and Firefox acceptance are still separate from the tested Sine/Zen path. Do not run two variants together.
+Copy the selected variant **and its adjacent `appearance-site-child.mjs` and `icons/` folder** into the same loader folder (without `icons/`, the button falls back to embedded icons, which render black on Gecko 159), and retain the existing [button CSS](chrome/userChrome.css). Keep the helper's plain `.mjs` filename: `.sys.mjs` files are automatically imported as background modules by fx-autoconfig. The full Configure editor requires Sine. The standalone variants read the same preferences and provide the same toolbar menu; native fx-autoconfig and Firefox acceptance are still separate from the tested Sine/Zen path. Do not run two variants together.
 
 ## Rollback
 

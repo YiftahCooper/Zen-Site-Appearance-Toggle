@@ -34,7 +34,7 @@ function startSiteSetup(win){
     }
     // General pages receive only the read-only appearance operation. The child
     // keeps all website-setting operations behind the original service gates.
-    ChromeUtils.registerWindowActor(ACTOR,{child:{esModuleURI:uri+'?v=1.3.3'},matches:['http://*/*','https://*/*'],remoteTypes:['web'],safeForUntrustedWebProcess:true,allFrames:false});
+    ChromeUtils.registerWindowActor(ACTOR,{child:{esModuleURI:uri+'?v=1.3.4'},matches:['http://*/*','https://*/*'],remoteTypes:['web'],safeForUntrustedWebProcess:true,allFrames:false});
     registry.registered=true;
   }
   async function ready(tab,expected,previous=null){
